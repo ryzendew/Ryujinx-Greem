@@ -845,9 +845,7 @@ namespace Ryujinx.Ava
             Logger.Info?.PrintMsg(LogClass.Gpu, $"Backend Threading ({threadingMode}): {isGALThreaded}");
 
             // Initialize Configuration.
-            var memoryConfiguration = ConfigurationState.Instance.System.ExpandRam 
-                ? MemoryConfiguration.MemoryConfiguration8GiB 
-                : MemoryConfiguration.MemoryConfiguration4GiB;
+            var memoryConfiguration = ConfigurationState.Instance.System.DramSize.Value;
 
             Device = new Switch(new HLEConfiguration(
                 VirtualFileSystem,
