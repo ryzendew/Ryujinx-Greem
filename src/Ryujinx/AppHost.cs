@@ -541,7 +541,7 @@ namespace Ryujinx.Ava
         {
             if (Device.Processes != null)
                 MainWindowViewModel.UpdateGameMetadata(Device.Processes.ActiveApplication.ProgramIdText);
-            
+
 
             ConfigurationState.Instance.System.IgnoreMissingServices.Event -= UpdateIgnoreMissingServicesState;
             ConfigurationState.Instance.Graphics.AspectRatio.Event -= UpdateAspectRatioState;
@@ -786,7 +786,7 @@ namespace Ryujinx.Ava
                 return false;
             }
 
-            ApplicationMetadata appMeta = ApplicationLibrary.LoadAndSaveMetaData(Device.Processes.ActiveApplication.ProgramIdText, 
+            ApplicationMetadata appMeta = ApplicationLibrary.LoadAndSaveMetaData(Device.Processes.ActiveApplication.ProgramIdText,
                 appMetadata => appMetadata.UpdatePreGame()
             );
 
@@ -865,7 +865,7 @@ namespace Ryujinx.Ava
                 ConfigurationState.Instance.System.EnableInternetAccess,
                 ConfigurationState.Instance.System.EnableFsIntegrityChecks ? IntegrityCheckLevel.ErrorOnInvalid : IntegrityCheckLevel.None,
                 ConfigurationState.Instance.System.FsGlobalAccessLogMode,
-                ConfigurationState.Instance.System.SystemTimeOffset, 
+                ConfigurationState.Instance.System.SystemTimeOffset,
                 ConfigurationState.Instance.System.TimeZone,
                 ConfigurationState.Instance.System.MemoryManagerMode,
                 ConfigurationState.Instance.System.IgnoreMissingServices,
