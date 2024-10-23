@@ -7,7 +7,6 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using DynamicData;
 using DynamicData.Binding;
-using FluentAvalonia.UI.Controls;
 using LibHac.Common;
 using Ryujinx.Ava.Common;
 using Ryujinx.Ava.Common.Locale;
@@ -39,7 +38,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Key = Ryujinx.Input.Key;
@@ -52,7 +50,7 @@ namespace Ryujinx.Ava.UI.ViewModels
     {
         private const int HotKeyPressDelayMs = 500;
 
-        private ObservableCollectionExtended<ApplicationData> _applications;
+        private ObservableCollection<ApplicationData> _applications;
         private string _aspectStatusText;
 
         private string _loadHeading;
@@ -64,6 +62,7 @@ namespace Ryujinx.Ava.UI.ViewModels
         private string _gameStatusText;
         private string _volumeStatusText;
         private string _gpuStatusText;
+        private string _shaderCountText;
         private bool _isAmiiboRequested;
         private bool _isGameRunning;
         private bool _isFullScreen;
@@ -110,19 +109,16 @@ namespace Ryujinx.Ava.UI.ViewModels
         public ApplicationData ListSelectedApplication;
         public ApplicationData GridSelectedApplication;
 
-        public MainWindow Window { get; init; }
-
         internal AppHost AppHost { get; set; }
 
         public MainWindowViewModel()
         {
-            Applications = [];
+            Applications = new ObservableCollection<ApplicationData>();
 
             Applications.ToObservableChangeSet()
                 .Filter(Filter)
                 .Sort(GetComparer())
-                .Bind(out _appsObservableList)
-                .AsObservableList();
+                .Bind(out _appsObservableList).AsObservableList();
 
             _rendererWaitEvent = new AutoResetEvent(false);
 
@@ -507,6 +503,17 @@ namespace Ryujinx.Ava.UI.ViewModels
             }
         }
 
+        public string ShaderCountText
+        {
+            get => _shaderCountText;
+            set
+            {
+                _shaderCountText = value;
+
+                OnPropertyChanged();
+            }
+        }
+
         public string BackendText
         {
             get => _backendText;
@@ -746,7 +753,7 @@ namespace Ryujinx.Ava.UI.ViewModels
             get => FileAssociationHelper.IsTypeAssociationSupported;
         }
 
-        public ObservableCollectionExtended<ApplicationData> Applications
+        public ObservableCollection<ApplicationData> Applications
         {
             get => _applications;
             set
@@ -913,8 +920,7 @@ namespace Ryujinx.Ava.UI.ViewModels
 
         public KeyGesture PauseKey
         {
-            get => KeyGesture.Parse(_pauseKey);
-            set
+            get => KeyGesture.Parse(_pauseKey); set
             {
                 _pauseKey = value.ToString();
 
@@ -1116,7 +1122,7 @@ namespace Ryujinx.Ava.UI.ViewModels
 
         private void ProgressHandler<T>(T state, int current, int total) where T : Enum
         {
-            Dispatcher.UIThread.Post(() =>
+            Dispatcher.UIThread.Post((() =>
             {
                 ProgressMaximum = total;
                 ProgressValue = current;
@@ -1162,7 +1168,7 @@ namespace Ryujinx.Ava.UI.ViewModels
                     default:
                         throw new ArgumentException($"Unknown Progress Handler type {typeof(T)}");
                 }
-            });
+            }));
         }
 
         private void PrepareLoadScreen()
@@ -1233,15 +1239,15 @@ namespace Ryujinx.Ava.UI.ViewModels
             {
                 Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    Application.Current!.Styles.TryGetResource(args.VSyncEnabled
+                    Application.Current.Styles.TryGetResource(args.VSyncEnabled
                         ? "VsyncEnabled"
                         : "VsyncDisabled",
                         Application.Current.ActualThemeVariant,
                         out object color);
 
-                    if (color is Color clr)
+                    if (color is not null)
                     {
-                        VsyncColor = new SolidColorBrush(clr);
+                        VsyncColor = new SolidColorBrush((Color)color);
                     }
 
                     DockedStatusText = args.DockedMode;
@@ -1249,6 +1255,7 @@ namespace Ryujinx.Ava.UI.ViewModels
                     GameStatusText = args.GameStatus;
                     VolumeStatusText = args.VolumeStatus;
                     FifoStatusText = args.FifoStatus;
+                    ShaderCountText = args.ShaderCount > 0 ? LocaleManager.Instance[LocaleKeys.CompilingShaders] + $": {args.ShaderCount}" : "";
 
                     ShowStatusSeparator = true;
                 });
@@ -1260,30 +1267,6 @@ namespace Ryujinx.Ava.UI.ViewModels
             ShowLoading(false);
 
             _rendererWaitEvent.Set();
-        }
-
-        private async Task LoadContentFromFolder(LocaleKeys localeMessageKey, Func<List<string>, int> onDirsSelected)
-        {
-            var result = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-            {
-                Title = LocaleManager.Instance[LocaleKeys.OpenFolderDialogTitle],
-                AllowMultiple = true,
-            });
-
-            if (result.Count > 0)
-            {
-                var dirs = result.Select(it => it.Path.LocalPath).ToList();
-                var numAdded = onDirsSelected(dirs);
-
-                var msg = string.Format(LocaleManager.Instance[localeMessageKey], numAdded);
-
-                await Dispatcher.UIThread.InvokeAsync(async () =>
-                {
-                    await ContentDialogHelper.ShowTextDialog(
-                        LocaleManager.Instance[numAdded > 0 ? LocaleKeys.RyujinxConfirm : LocaleKeys.RyujinxInfo],
-                        msg, "", "", "", LocaleManager.Instance[LocaleKeys.InputDialogOk], (int)Symbol.Checkmark);
-                });
-            }
         }
 
         #endregion
@@ -1426,7 +1409,7 @@ namespace Ryujinx.Ava.UI.ViewModels
 
         public async Task ExitCurrentState()
         {
-            if (WindowState is WindowState.FullScreen)
+            if (WindowState == WindowState.FullScreen)
             {
                 ToggleFullscreen();
             }
@@ -1532,16 +1515,6 @@ namespace Ryujinx.Ava.UI.ViewModels
                     await ContentDialogHelper.CreateErrorDialog(LocaleManager.Instance[LocaleKeys.MenuBarFileOpenFromFileError]);
                 }
             }
-        }
-
-        public async Task LoadDlcFromFolder()
-        {
-            await LoadContentFromFolder(LocaleKeys.AutoloadDlcAddedMessage, ApplicationLibrary.AutoLoadDownloadableContents);
-        }
-
-        public async Task LoadTitleUpdatesFromFolder()
-        {
-            await LoadContentFromFolder(LocaleKeys.AutoloadUpdateAddedMessage, ApplicationLibrary.AutoLoadTitleUpdates);
         }
 
         public async Task OpenFolder()
@@ -1655,10 +1628,7 @@ namespace Ryujinx.Ava.UI.ViewModels
             {
                 version = ContentManager.GetCurrentFirmwareVersion();
             }
-            catch (Exception)
-            {
-                // ignored
-            }
+            catch (Exception) { }
 
             bool hasApplet = false;
 
@@ -1708,30 +1678,8 @@ namespace Ryujinx.Ava.UI.ViewModels
 
             Dispatcher.UIThread.InvokeAsync(() =>
             {
-                Title = App.FormatTitle();
+                Title = $"Ryujinx {Program.Version}";
             });
-        }
-
-        public async Task OpenAmiiboWindow()
-        {
-            if (!IsAmiiboRequested)
-                return;
-
-            if (AppHost.Device.System.SearchingForAmiibo(out int deviceId))
-            {
-                string titleId = AppHost.Device.Processes.ActiveApplication.ProgramIdText.ToUpper();
-                AmiiboWindow window = new(ShowAll, LastScannedAmiiboId, titleId);
-
-                await window.ShowDialog(Window);
-
-                if (window.IsScanned)
-                {
-                    ShowAll = window.ViewModel.ShowAllAmiibo;
-                    LastScannedAmiiboId = window.ScannedAmiibo.GetId();
-
-                    AppHost.Device.System.ScanAmiibo(deviceId, LastScannedAmiiboId, window.ViewModel.UseRandomUuid);
-                }
-            }
         }
 
         public void ToggleFullscreen()
@@ -1743,7 +1691,7 @@ namespace Ryujinx.Ava.UI.ViewModels
 
             LastFullscreenToggle = Environment.TickCount64;
 
-            if (WindowState is not WindowState.Normal)
+            if (WindowState == WindowState.FullScreen)
             {
                 WindowState = WindowState.Normal;
 
@@ -1762,7 +1710,7 @@ namespace Ryujinx.Ava.UI.ViewModels
                 }
             }
 
-            IsFullScreen = WindowState is WindowState.FullScreen;
+            IsFullScreen = WindowState == WindowState.FullScreen;
         }
 
         public static void SaveConfig()
@@ -1777,7 +1725,12 @@ namespace Ryujinx.Ava.UI.ViewModels
                 string mainMessage = LocaleManager.Instance[LocaleKeys.DialogPerformanceCheckLoggingEnabledMessage];
                 string secondaryMessage = LocaleManager.Instance[LocaleKeys.DialogPerformanceCheckLoggingEnabledConfirmMessage];
 
-                UserResult result = await ContentDialogHelper.CreateLocalizedConfirmationDialog(mainMessage, secondaryMessage);
+                UserResult result = await ContentDialogHelper.CreateConfirmationDialog(
+                    mainMessage,
+                    secondaryMessage,
+                    LocaleManager.Instance[LocaleKeys.InputDialogYes],
+                    LocaleManager.Instance[LocaleKeys.InputDialogNo],
+                    LocaleManager.Instance[LocaleKeys.RyujinxConfirm]);
 
                 if (result == UserResult.Yes)
                 {
@@ -1792,7 +1745,12 @@ namespace Ryujinx.Ava.UI.ViewModels
                 string mainMessage = LocaleManager.Instance[LocaleKeys.DialogPerformanceCheckShaderDumpEnabledMessage];
                 string secondaryMessage = LocaleManager.Instance[LocaleKeys.DialogPerformanceCheckShaderDumpEnabledConfirmMessage];
 
-                UserResult result = await ContentDialogHelper.CreateLocalizedConfirmationDialog(mainMessage, secondaryMessage);
+                UserResult result = await ContentDialogHelper.CreateConfirmationDialog(
+                    mainMessage,
+                    secondaryMessage,
+                    LocaleManager.Instance[LocaleKeys.InputDialogYes],
+                    LocaleManager.Instance[LocaleKeys.InputDialogNo],
+                    LocaleManager.Instance[LocaleKeys.RyujinxConfirm]);
 
                 if (result == UserResult.Yes)
                 {

@@ -29,6 +29,8 @@ namespace Ryujinx.Graphics.OpenGL
 
         private readonly Sync _sync;
 
+        public uint ProgramCount { get; set; } = 0;
+
         public event EventHandler<ScreenCaptureImageInfo> ScreenCaptured;
 
         internal PersistentBuffers PersistentBuffers { get; }
@@ -94,6 +96,8 @@ namespace Ryujinx.Graphics.OpenGL
 
         public IProgram CreateProgram(ShaderSource[] shaders, ShaderInfo info)
         {
+            ProgramCount++;
+
             return new Program(shaders, info.FragmentOutputMap);
         }
 
@@ -202,8 +206,7 @@ namespace Ryujinx.Graphics.OpenGL
                 shaderSubgroupSize: Constants.MaxSubgroupSize,
                 storageBufferOffsetAlignment: HwCapabilities.StorageBufferOffsetAlignment,
                 textureBufferOffsetAlignment: HwCapabilities.TextureBufferOffsetAlignment,
-                gatherBiasPrecision: intelWindows || amdWindows ? 8 : 0, // Precision is 8 for these vendors on Vulkan.
-                maximumGpuMemory: 0);
+                gatherBiasPrecision: intelWindows || amdWindows ? 8 : 0); // Precision is 8 for these vendors on Vulkan.
         }
 
         public void SetBufferData(BufferHandle buffer, int offset, ReadOnlySpan<byte> data)
@@ -243,7 +246,7 @@ namespace Ryujinx.Graphics.OpenGL
             // This is required to disable [0, 1] clamping for SNorm outputs on compatibility profiles.
             // This call is expected to fail if we're running with a core profile,
             // as this clamp target was deprecated, but that's fine as a core profile
-            // should already have the desired behaviour where outputs are not clamped.
+            // should already have the desired behaviour were outputs are not clamped.
             GL.ClampColor(ClampColorTarget.ClampFragmentColor, ClampColorMode.False);
         }
 

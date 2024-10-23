@@ -103,6 +103,10 @@ namespace Ryujinx.Ava
         private CursorStates _cursorState = !ConfigurationState.Instance.Hid.EnableMouse.Value ?
             CursorStates.CursorIsVisible : CursorStates.CursorIsHidden;
 
+        private DateTime _lastShaderReset;
+        private uint _displayCount;
+        private uint _previousCount = 0;
+
         private bool _isStopped;
         private bool _isActive;
         private bool _renderingStarted;
@@ -367,12 +371,12 @@ namespace Ryujinx.Ava
                         }
 
                         var colorType = e.IsBgra ? SKColorType.Bgra8888 : SKColorType.Rgba8888;
-                        using SKBitmap bitmap = new(new SKImageInfo(e.Width, e.Height, colorType, SKAlphaType.Premul));
+                        using SKBitmap bitmap = new SKBitmap(new SKImageInfo(e.Width, e.Height, colorType, SKAlphaType.Premul));
 
                         Marshal.Copy(e.Data, 0, bitmap.GetPixels(), e.Data.Length);
 
-                        using SKBitmap bitmapToSave = new(bitmap.Width, bitmap.Height);
-                        using SKCanvas canvas = new(bitmapToSave);
+                        using SKBitmap bitmapToSave = new SKBitmap(bitmap.Width, bitmap.Height);
+                        using SKCanvas canvas = new SKCanvas(bitmapToSave);
 
                         canvas.Clear(SKColors.Black);
 
@@ -396,7 +400,7 @@ namespace Ryujinx.Ava
             }
         }
 
-        private static void SaveBitmapAsPng(SKBitmap bitmap, string path)
+        private void SaveBitmapAsPng(SKBitmap bitmap, string path)
         {
             using var data = bitmap.Encode(SKEncodedImageFormat.Png, 100);
             using var stream = File.OpenWrite(path);
@@ -498,7 +502,6 @@ namespace Ryujinx.Ava
         public void Stop()
         {
             _isActive = false;
-            DiscordIntegrationModule.SwitchToMainState();
         }
 
         private void Exit()
@@ -512,7 +515,6 @@ namespace Ryujinx.Ava
 
             _isStopped = true;
             _isActive = false;
-            DiscordIntegrationModule.SwitchToMainState();
         }
 
         public void DisposeContext()
@@ -540,8 +542,9 @@ namespace Ryujinx.Ava
         private void Dispose()
         {
             if (Device.Processes != null)
+            {
                 MainWindowViewModel.UpdateGameMetadata(Device.Processes.ActiveApplication.ProgramIdText);
-
+            }
 
             ConfigurationState.Instance.System.IgnoreMissingServices.Event -= UpdateIgnoreMissingServicesState;
             ConfigurationState.Instance.Graphics.AspectRatio.Event -= UpdateAspectRatioState;
@@ -786,11 +789,12 @@ namespace Ryujinx.Ava
                 return false;
             }
 
-            ApplicationMetadata appMeta = ApplicationLibrary.LoadAndSaveMetaData(Device.Processes.ActiveApplication.ProgramIdText,
-                appMetadata => appMetadata.UpdatePreGame()
-            );
+            DiscordIntegrationModule.SwitchToPlayingState(Device.Processes.ActiveApplication.ProgramIdText, Device.Processes.ActiveApplication.Name);
 
-            DiscordIntegrationModule.SwitchToPlayingState(appMeta, Device.Processes.ActiveApplication);
+            ApplicationLibrary.LoadAndSaveMetaData(Device.Processes.ActiveApplication.ProgramIdText, appMetadata =>
+            {
+                appMetadata.UpdatePreGame();
+            });
 
             return true;
         }
@@ -825,7 +829,7 @@ namespace Ryujinx.Ava
             {
                 renderer = new VulkanRenderer(
                     Vk.GetApi(),
-                    (RendererHost.EmbeddedWindow as EmbeddedWindowVulkan)!.CreateSurface,
+                    (RendererHost.EmbeddedWindow as EmbeddedWindowVulkan).CreateSurface,
                     VulkanHelper.GetRequiredInstanceExtensions,
                     ConfigurationState.Instance.Graphics.PreferredGpu.Value);
             }
@@ -845,37 +849,36 @@ namespace Ryujinx.Ava
             Logger.Info?.PrintMsg(LogClass.Gpu, $"Backend Threading ({threadingMode}): {isGALThreaded}");
 
             // Initialize Configuration.
-            var memoryConfiguration = ConfigurationState.Instance.System.DramSize.Value;
+            var memoryConfiguration = ConfigurationState.Instance.System.ExpandRam.Value ? MemoryConfiguration.MemoryConfiguration6GiB : MemoryConfiguration.MemoryConfiguration4GiB;
 
-            Device = new Switch(new HLEConfiguration(
-                VirtualFileSystem,
-                _viewModel.LibHacHorizonManager,
-                ContentManager,
-                _accountManager,
-                _userChannelPersistence,
-                renderer,
-                InitializeAudio(),
-                memoryConfiguration,
-                _viewModel.UiHandler,
-                (SystemLanguage)ConfigurationState.Instance.System.Language.Value,
-                (RegionCode)ConfigurationState.Instance.System.Region.Value,
-                ConfigurationState.Instance.Graphics.EnableVsync,
-                ConfigurationState.Instance.System.EnableDockedMode,
-                ConfigurationState.Instance.System.EnablePtc,
-                ConfigurationState.Instance.System.EnableInternetAccess,
-                ConfigurationState.Instance.System.EnableFsIntegrityChecks ? IntegrityCheckLevel.ErrorOnInvalid : IntegrityCheckLevel.None,
-                ConfigurationState.Instance.System.FsGlobalAccessLogMode,
-                ConfigurationState.Instance.System.SystemTimeOffset,
-                ConfigurationState.Instance.System.TimeZone,
-                ConfigurationState.Instance.System.MemoryManagerMode,
-                ConfigurationState.Instance.System.IgnoreMissingServices,
-                ConfigurationState.Instance.Graphics.AspectRatio,
-                ConfigurationState.Instance.System.AudioVolume,
-                ConfigurationState.Instance.System.UseHypervisor,
-                ConfigurationState.Instance.Multiplayer.LanInterfaceId,
-                ConfigurationState.Instance.Multiplayer.Mode
-                )
-            );
+            HLEConfiguration configuration = new(VirtualFileSystem,
+                                                 _viewModel.LibHacHorizonManager,
+                                                 ContentManager,
+                                                 _accountManager,
+                                                 _userChannelPersistence,
+                                                 renderer,
+                                                 InitializeAudio(),
+                                                 memoryConfiguration,
+                                                 _viewModel.UiHandler,
+                                                 (SystemLanguage)ConfigurationState.Instance.System.Language.Value,
+                                                 (RegionCode)ConfigurationState.Instance.System.Region.Value,
+                                                 ConfigurationState.Instance.Graphics.EnableVsync,
+                                                 ConfigurationState.Instance.System.EnableDockedMode,
+                                                 ConfigurationState.Instance.System.EnablePtc,
+                                                 ConfigurationState.Instance.System.EnableInternetAccess,
+                                                 ConfigurationState.Instance.System.EnableFsIntegrityChecks ? IntegrityCheckLevel.ErrorOnInvalid : IntegrityCheckLevel.None,
+                                                 ConfigurationState.Instance.System.FsGlobalAccessLogMode,
+                                                 ConfigurationState.Instance.System.SystemTimeOffset,
+                                                 ConfigurationState.Instance.System.TimeZone,
+                                                 ConfigurationState.Instance.System.MemoryManagerMode,
+                                                 ConfigurationState.Instance.System.IgnoreMissingServices,
+                                                 ConfigurationState.Instance.Graphics.AspectRatio,
+                                                 ConfigurationState.Instance.System.AudioVolume,
+                                                 ConfigurationState.Instance.System.UseHypervisor,
+                                                 ConfigurationState.Instance.Multiplayer.LanInterfaceId.Value,
+                                                 ConfigurationState.Instance.Multiplayer.Mode);
+
+            Device = new Switch(configuration);
         }
 
         private static IHardwareDeviceDriver InitializeAudio()
@@ -949,8 +952,10 @@ namespace Ryujinx.Ava
 
         private void MainLoop()
         {
-            while (UpdateFrame())
+            while (_isActive)
             {
+                UpdateFrame();
+
                 // Polling becomes expensive if it's not slept.
                 Thread.Sleep(1);
             }
@@ -965,7 +970,7 @@ namespace Ryujinx.Ava
                     _viewModel.WindowState = WindowState.FullScreen;
                 }
 
-                if (_viewModel.WindowState is WindowState.FullScreen)
+                if (_viewModel.WindowState == WindowState.FullScreen)
                 {
                     _viewModel.ShowMenuAndStatusBar = false;
                 }
@@ -1058,6 +1063,8 @@ namespace Ryujinx.Ava
             // Run a status update only when a frame is to be drawn. This prevents from updating the ui and wasting a render when no frame is queued.
             string dockedMode = ConfigurationState.Instance.System.EnableDockedMode ? LocaleManager.Instance[LocaleKeys.Docked] : LocaleManager.Instance[LocaleKeys.Handheld];
 
+            UpdateShaderCount();
+
             if (GraphicsConfig.ResScale != 1)
             {
                 dockedMode += $" ({GraphicsConfig.ResScale}x)";
@@ -1069,7 +1076,8 @@ namespace Ryujinx.Ava
                 dockedMode,
                 ConfigurationState.Instance.Graphics.AspectRatio.Value.ToText(),
                 LocaleManager.Instance[LocaleKeys.Game] + $": {Device.Statistics.GetGameFrameRate():00.00} FPS ({Device.Statistics.GetGameFrameTime():00.00} ms)",
-                $"FIFO: {Device.Statistics.GetFifoPercent():00.00} %"));
+                $"FIFO: {Device.Statistics.GetFifoPercent():00.00} %",
+                _displayCount));
         }
 
         public async Task ShowExitPrompt()
@@ -1092,6 +1100,25 @@ namespace Ryujinx.Ava
             if (shouldExit)
             {
                 Stop();
+            }
+        }
+
+        private void UpdateShaderCount()
+        {
+            // If there is a mismatch between total program compile and previous count
+            // this means new shaders have been compiled and should be displayed.
+            if (_renderer.ProgramCount != _previousCount)
+            {
+                _displayCount += _renderer.ProgramCount - _previousCount;
+
+                _lastShaderReset = DateTime.Now;
+                _previousCount = _renderer.ProgramCount;
+            }
+            // Check if 5s has passed since any new shaders were compiled.
+            // If yes, reset the counter.
+            else if (_lastShaderReset.AddSeconds(5) <= DateTime.Now)
+            {
+                _displayCount = 0;
             }
         }
 
@@ -1136,7 +1163,7 @@ namespace Ryujinx.Ava
 
                 Dispatcher.UIThread.Post(() =>
                 {
-                    if (_keyboardInterface.GetKeyboardStateSnapshot().IsPressed(Key.Delete) && _viewModel.WindowState is not WindowState.FullScreen)
+                    if (_keyboardInterface.GetKeyboardStateSnapshot().IsPressed(Key.Delete) && _viewModel.WindowState != WindowState.FullScreen)
                     {
                         Device.Processes.ActiveApplication.DiskCacheLoadState?.Cancel();
                     }
