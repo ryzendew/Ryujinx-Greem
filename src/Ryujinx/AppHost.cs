@@ -541,7 +541,7 @@ namespace Ryujinx.Ava
         {
             if (Device.Processes != null)
                 MainWindowViewModel.UpdateGameMetadata(Device.Processes.ActiveApplication.ProgramIdText);
-            
+
 
             ConfigurationState.Instance.System.IgnoreMissingServices.Event -= UpdateIgnoreMissingServicesState;
             ConfigurationState.Instance.Graphics.AspectRatio.Event -= UpdateAspectRatioState;
@@ -786,7 +786,7 @@ namespace Ryujinx.Ava
                 return false;
             }
 
-            ApplicationMetadata appMeta = ApplicationLibrary.LoadAndSaveMetaData(Device.Processes.ActiveApplication.ProgramIdText, 
+            ApplicationMetadata appMeta = ApplicationLibrary.LoadAndSaveMetaData(Device.Processes.ActiveApplication.ProgramIdText,
                 appMetadata => appMetadata.UpdatePreGame()
             );
 
@@ -845,9 +845,7 @@ namespace Ryujinx.Ava
             Logger.Info?.PrintMsg(LogClass.Gpu, $"Backend Threading ({threadingMode}): {isGALThreaded}");
 
             // Initialize Configuration.
-            var memoryConfiguration = ConfigurationState.Instance.System.ExpandRam 
-                ? MemoryConfiguration.MemoryConfiguration8GiB 
-                : MemoryConfiguration.MemoryConfiguration4GiB;
+            var memoryConfiguration = ConfigurationState.Instance.System.DramSize.Value;
 
             Device = new Switch(new HLEConfiguration(
                 VirtualFileSystem,
@@ -867,7 +865,7 @@ namespace Ryujinx.Ava
                 ConfigurationState.Instance.System.EnableInternetAccess,
                 ConfigurationState.Instance.System.EnableFsIntegrityChecks ? IntegrityCheckLevel.ErrorOnInvalid : IntegrityCheckLevel.None,
                 ConfigurationState.Instance.System.FsGlobalAccessLogMode,
-                ConfigurationState.Instance.System.SystemTimeOffset, 
+                ConfigurationState.Instance.System.SystemTimeOffset,
                 ConfigurationState.Instance.System.TimeZone,
                 ConfigurationState.Instance.System.MemoryManagerMode,
                 ConfigurationState.Instance.System.IgnoreMissingServices,
@@ -964,10 +962,10 @@ namespace Ryujinx.Ava
             {
                 if (_viewModel.StartGamesInFullscreen)
                 {
-                    _viewModel.WindowState = MainWindow.FullScreenWindowState;
+                    _viewModel.WindowState = WindowState.FullScreen;
                 }
 
-                if (_viewModel.WindowState == MainWindow.FullScreenWindowState)
+                if (_viewModel.WindowState is WindowState.FullScreen)
                 {
                     _viewModel.ShowMenuAndStatusBar = false;
                 }
@@ -1138,7 +1136,7 @@ namespace Ryujinx.Ava
 
                 Dispatcher.UIThread.Post(() =>
                 {
-                    if (_keyboardInterface.GetKeyboardStateSnapshot().IsPressed(Key.Delete) && _viewModel.WindowState != MainWindow.FullScreenWindowState)
+                    if (_keyboardInterface.GetKeyboardStateSnapshot().IsPressed(Key.Delete) && _viewModel.WindowState is not WindowState.FullScreen)
                     {
                         Device.Processes.ActiveApplication.DiskCacheLoadState?.Cancel();
                     }
