@@ -22,7 +22,7 @@ namespace Ryujinx.HLE.HOS.Services.Nifm.StaticService
             _generalServiceDetail = new GeneralServiceDetail
             {
                 ClientId = GeneralServiceManager.Count,
-                IsAnyInternetRequestAccepted = true, // NOTE: Why not accept any internet request?
+                IsAnyInternetRequestAccepted = false, // NOTE: Why not accept any internet request?
             };
 
             NetworkChange.NetworkAddressChanged += LocalInterfaceCacheHandler;
