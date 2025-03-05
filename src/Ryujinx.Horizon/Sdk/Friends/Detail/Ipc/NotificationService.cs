@@ -4,6 +4,7 @@ using Ryujinx.Horizon.Sdk.OsTypes;
 using Ryujinx.Horizon.Sdk.Sf;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Ryujinx.Horizon.Sdk.Friends.Detail.Ipc
 {
@@ -13,7 +14,7 @@ namespace Ryujinx.Horizon.Sdk.Friends.Detail.Ipc
         private readonly Uid _userId;
         private readonly FriendsServicePermissionLevel _permissionLevel;
 
-        private readonly object _lock = new();
+        private readonly Lock _lock = new();
 
         private SystemEventType _notificationEvent;
 
@@ -27,7 +28,7 @@ namespace Ryujinx.Horizon.Sdk.Friends.Detail.Ipc
             _notificationEventHandler = notificationEventHandler;
             _userId = userId;
             _permissionLevel = permissionLevel;
-            _notifications = new LinkedList<SizedNotificationInfo>();
+            _notifications = [];
             Os.CreateSystemEvent(out _notificationEvent, EventClearMode.AutoClear, interProcess: true).AbortOnFailure();
 
             _hasNewFriendRequest = false;

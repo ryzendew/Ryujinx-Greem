@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading;
 
 namespace Ryujinx.HLE.HOS.Services.Sockets.Bsd
 {
@@ -10,13 +11,13 @@ namespace Ryujinx.HLE.HOS.Services.Sockets.Bsd
     {
         private static readonly ConcurrentDictionary<ulong, BsdContext> _registry = new();
 
-        private readonly object _lock = new();
+        private readonly Lock _lock = new();
 
         private readonly List<IFileDescriptor> _fds;
 
         private BsdContext()
         {
-            _fds = new List<IFileDescriptor>();
+            _fds = [];
         }
 
         public ISocket RetrieveSocket(int socketFd)
@@ -46,7 +47,7 @@ namespace Ryujinx.HLE.HOS.Services.Sockets.Bsd
 
         public List<IFileDescriptor> RetrieveFileDescriptorsFromMask(ReadOnlySpan<byte> mask)
         {
-            List<IFileDescriptor> fds = new();
+            List<IFileDescriptor> fds = [];
 
             for (int i = 0; i < mask.Length; i++)
             {

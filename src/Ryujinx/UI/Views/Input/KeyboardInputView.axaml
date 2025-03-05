@@ -1,7 +1,7 @@
 <UserControl
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:locale="clr-namespace:Ryujinx.Ava.Common.Locale"
+    xmlns:ext="clr-namespace:Ryujinx.Ava.Common.Markup"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewModels="clr-namespace:Ryujinx.Ava.UI.ViewModels.Input"
@@ -18,9 +18,6 @@
     <Design.DataContext>
         <viewModels:KeyboardInputViewModel />
     </Design.DataContext>
-    <UserControl.Resources>
-        <helpers:KeyValueConverter x:Key="Key" />
-    </UserControl.Resources>
     <UserControl.Styles>
         <Style Selector="ToggleButton">
             <Setter Property="Width" Value="90" />
@@ -35,12 +32,7 @@
         <!-- Button / JoyStick Settings -->
         <Grid
             Name="SettingButtons"
-            MinHeight="450">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+            MinHeight="450" ColumnDefinitions="Auto,*,Auto">
             <!-- Left Controls -->
             <StackPanel
                 Orientation="Vertical"
@@ -55,15 +47,7 @@
                     CornerRadius="5">
                     <Grid
                         Margin="10"
-                        HorizontalAlignment="Stretch">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition />
-                            <ColumnDefinition />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition />
-                            <RowDefinition />
-                        </Grid.RowDefinitions>
+                        HorizontalAlignment="Stretch" ColumnDefinitions="*,*" RowDefinitions="*,*">
                         <StackPanel
                             Grid.Column="0"
                             Grid.Row="0"
@@ -72,11 +56,11 @@
                                 Width="20"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                Text="{locale:Locale ControllerSettingsTriggerZL}"
+                                Text="{ext:Locale ControllerSettingsTriggerZL}"
                                 TextAlignment="Center" />
                             <ToggleButton Name="ButtonZl">
                                 <TextBlock
-                                    Text="{Binding Config.ButtonZl, Converter={StaticResource Key}}"
+                                    Text="{Binding Config.ButtonZl, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                     TextAlignment="Center" />
                             </ToggleButton>
                         </StackPanel>
@@ -88,11 +72,11 @@
                                 Width="20"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                Text="{locale:Locale ControllerSettingsTriggerL}"
+                                Text="{ext:Locale ControllerSettingsTriggerL}"
                                 TextAlignment="Center" />
                             <ToggleButton Name="ButtonL">
                                 <TextBlock
-                                    Text="{Binding Config.ButtonL, Converter={StaticResource Key}}"
+                                    Text="{Binding Config.ButtonL, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                     TextAlignment="Center" />
                             </ToggleButton>
                         </StackPanel>
@@ -104,11 +88,11 @@
                                 Width="20"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                Text="{locale:Locale ControllerSettingsButtonMinus}"
+                                Text="{ext:Locale ControllerSettingsButtonMinus}"
                                 TextAlignment="Center" />
                             <ToggleButton Name="ButtonMinus">
                                 <TextBlock
-                                    Text="{Binding Config.ButtonMinus, Converter={StaticResource Key}}"
+                                    Text="{Binding Config.ButtonMinus, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                     TextAlignment="Center" />
                             </ToggleButton>
                         </StackPanel>
@@ -127,7 +111,7 @@
                         <TextBlock
                             Margin="0,0,0,10"
                             HorizontalAlignment="Center"
-                            Text="{locale:Locale ControllerSettingsLStick}" />
+                            Text="{ext:Locale ControllerSettingsLStick}" />
                         <!-- Left Joystick Keyboard -->
                         <StackPanel Orientation="Vertical">
                             <!-- Left Joystick Button -->
@@ -139,11 +123,11 @@
                                     Width="120"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsStickButton}"
+                                    Text="{ext:Locale ControllerSettingsStickButton}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="LeftStickButton">
                                     <TextBlock
-                                        Text="{Binding Config.LeftStickButton, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.LeftStickButton, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -156,11 +140,11 @@
                                     Width="120"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsStickUp}"
+                                    Text="{ext:Locale ControllerSettingsStickUp}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="LeftStickUp">
                                     <TextBlock
-                                        Text="{Binding Config.LeftStickUp, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.LeftStickUp, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -173,11 +157,11 @@
                                     Width="120"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsStickDown}"
+                                    Text="{ext:Locale ControllerSettingsStickDown}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="LeftStickDown">
                                     <TextBlock
-                                        Text="{Binding Config.LeftStickDown, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.LeftStickDown, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -190,11 +174,11 @@
                                     Width="120"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsStickLeft}"
+                                    Text="{ext:Locale ControllerSettingsStickLeft}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="LeftStickLeft">
                                     <TextBlock
-                                        Text="{Binding Config.LeftStickLeft, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.LeftStickLeft, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -207,11 +191,11 @@
                                     Width="120"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsStickRight}"
+                                    Text="{ext:Locale ControllerSettingsStickRight}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="LeftStickRight">
                                     <TextBlock
-                                        Text="{Binding Config.LeftStickRight, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.LeftStickRight, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -232,7 +216,7 @@
                         <TextBlock
                             Margin="0,0,0,10"
                             HorizontalAlignment="Center"
-                            Text="{locale:Locale ControllerSettingsDPad}" />
+                            Text="{ext:Locale ControllerSettingsDPad}" />
                         <StackPanel Orientation="Vertical">
                             <!-- Left DPad Up -->
                             <StackPanel
@@ -243,11 +227,11 @@
                                     Width="120"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsDPadUp}"
+                                    Text="{ext:Locale ControllerSettingsDPadUp}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="DpadUp">
                                     <TextBlock
-                                        Text="{Binding Config.DpadUp, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.DpadUp, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -260,11 +244,11 @@
                                     Width="120"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsDPadDown}"
+                                    Text="{ext:Locale ControllerSettingsDPadDown}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="DpadDown">
                                     <TextBlock
-                                        Text="{Binding Config.DpadDown, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.DpadDown, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -277,11 +261,11 @@
                                     Width="120"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsDPadLeft}"
+                                    Text="{ext:Locale ControllerSettingsDPadLeft}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="DpadLeft">
                                     <TextBlock
-                                        Text="{Binding Config.DpadLeft, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.DpadLeft, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -294,11 +278,11 @@
                                     Width="120"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsDPadRight}"
+                                    Text="{ext:Locale ControllerSettingsDPadRight}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="DpadRight">
                                     <TextBlock
-                                        Text="{Binding Config.DpadRight, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.DpadRight, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -312,12 +296,79 @@
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch">
                 <!-- Controller Picture -->
-                <Image
+                <Border
+                    BorderBrush="{DynamicResource ThemeControlBorderColor}"
+                    BorderThickness="1"
+                    CornerRadius="5"
                     Margin="0,10"
-                    MaxHeight="300"
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Stretch"
-                    Source="{Binding Image}" />
+                    MinHeight="90">
+                    <StackPanel
+                        Margin="10"
+                        Orientation="Horizontal"
+                        Spacing="20"
+                        HorizontalAlignment="Center">
+                        <Border
+                            BorderBrush="{DynamicResource ThemeControlBorderColor}"
+                            BorderThickness="1"
+                            CornerRadius="5"
+                            Height="{Binding Visualizer.UiStickBorderSize}"
+                            Width="{Binding Visualizer.UiStickBorderSize}"
+                            IsVisible="{Binding IsLeft}">
+                            <Canvas
+                                Background="{DynamicResource ThemeBackgroundColor}"
+                                Height="{Binding Visualizer.UiCanvasSize}"
+                                Width="{Binding Visualizer.UiCanvasSize}">
+                                <Grid
+                                    Height="{Binding Visualizer.UiCanvasSize}"
+                                    Width="{Binding Visualizer.UiCanvasSize}"
+                                    Background="{DynamicResource ThemeBackgroundColor}">
+                                    <Ellipse
+                                        HorizontalAlignment="Center"
+                                        Stroke="Black"
+                                        StrokeThickness="1"
+                                        Width="{Binding Visualizer.UiCanvasSize}"
+                                        Height="{Binding Visualizer.UiCanvasSize}"/>
+                                </Grid>
+                                <Ellipse
+                                        Fill="Red" 
+                                        Width="{Binding Visualizer.UiStickCircumference}" 
+                                        Height="{Binding Visualizer.UiStickCircumference}" 
+                                        Canvas.Bottom="{Binding Visualizer.UiStickLeftY}" 
+                                        Canvas.Left="{Binding Visualizer.UiStickLeftX}" />
+                            </Canvas>
+                        </Border>        
+                        <Border
+                            BorderBrush="{DynamicResource ThemeControlBorderColor}"
+                            BorderThickness="1"
+                            CornerRadius="5"
+                            Height="{Binding Visualizer.UiStickBorderSize}"
+                            Width="{Binding Visualizer.UiStickBorderSize}"
+                            IsVisible="{Binding IsRight}">
+                            <Canvas
+                                Background="{DynamicResource ThemeBackgroundColor}"
+                                Height="{Binding Visualizer.UiCanvasSize}"
+                                Width="{Binding Visualizer.UiCanvasSize}">
+                                <Grid
+                                    Height="{Binding Visualizer.UiCanvasSize}"
+                                    Width="{Binding Visualizer.UiCanvasSize}"
+                                    Background="{DynamicResource ThemeBackgroundColor}">
+                                    <Ellipse
+                                        HorizontalAlignment="Center"
+                                        Stroke="Black"
+                                        StrokeThickness="1"
+                                        Width="{Binding Visualizer.UiCanvasSize}"
+                                        Height="{Binding Visualizer.UiCanvasSize}"/>
+                                </Grid>
+                                <Ellipse
+                                        Fill="Red" 
+                                        Width="{Binding Visualizer.UiStickCircumference}" 
+                                        Height="{Binding Visualizer.UiStickCircumference}" 
+                                        Canvas.Bottom="{Binding Visualizer.UiStickRightY}" 
+                                        Canvas.Left="{Binding Visualizer.UiStickRightX}" />
+                            </Canvas>
+                        </Border>        
+                    </StackPanel>
+                </Border>
                 <Border
                     BorderBrush="{DynamicResource ThemeControlBorderColor}"
                     BorderThickness="1"
@@ -337,11 +388,11 @@
                                 Width="20"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                Text="{locale:Locale ControllerSettingsLeftSR}"
+                                Text="{ext:Locale ControllerSettingsLeftSR}"
                                 TextAlignment="Center" />
                             <ToggleButton Name="LeftButtonSr">
                                 <TextBlock
-                                    Text="{Binding Config.LeftButtonSr, Converter={StaticResource Key}}"
+                                    Text="{Binding Config.LeftButtonSr, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                     TextAlignment="Center" />
                             </ToggleButton>
                         </StackPanel>
@@ -355,11 +406,11 @@
                                 Width="20"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                Text="{locale:Locale ControllerSettingsLeftSL}"
+                                Text="{ext:Locale ControllerSettingsLeftSL}"
                                 TextAlignment="Center" />
                             <ToggleButton Name="LeftButtonSl">
                                 <TextBlock
-                                    Text="{Binding Config.LeftButtonSl, Converter={StaticResource Key}}"
+                                    Text="{Binding Config.LeftButtonSl, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                     TextAlignment="Center" />
                             </ToggleButton>
                         </StackPanel>
@@ -373,11 +424,11 @@
                                 Width="20"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                Text="{locale:Locale ControllerSettingsRightSR}"
+                                Text="{ext:Locale ControllerSettingsRightSR}"
                                 TextAlignment="Center" />
                             <ToggleButton Name="RightButtonSr">
                                 <TextBlock
-                                    Text="{Binding Config.RightButtonSr, Converter={StaticResource Key}}"
+                                    Text="{Binding Config.RightButtonSr, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                     TextAlignment="Center" />
                             </ToggleButton>
                         </StackPanel>
@@ -391,11 +442,11 @@
                                 Width="20"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                Text="{locale:Locale ControllerSettingsRightSL}"
+                                Text="{ext:Locale ControllerSettingsRightSL}"
                                 TextAlignment="Center" />
                             <ToggleButton Name="RightButtonSl">
                                 <TextBlock
-                                    Text="{Binding Config.RightButtonSl, Converter={StaticResource Key}}"
+                                    Text="{Binding Config.RightButtonSl, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                     TextAlignment="Center" />
                             </ToggleButton>
                         </StackPanel>
@@ -416,15 +467,7 @@
                     CornerRadius="5">
                     <Grid
                         Margin="10"
-                        HorizontalAlignment="Stretch">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition />
-                            <ColumnDefinition />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition />
-                            <RowDefinition />
-                        </Grid.RowDefinitions>
+                        HorizontalAlignment="Stretch" ColumnDefinitions="*,*" RowDefinitions="*,*">
                         <StackPanel
                             Grid.Column="1"
                             Grid.Row="0"
@@ -433,11 +476,11 @@
                                 Width="20"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                Text="{locale:Locale ControllerSettingsTriggerZR}"
+                                Text="{ext:Locale ControllerSettingsTriggerZR}"
                                 TextAlignment="Center" />
                             <ToggleButton Name="ButtonZr">
                                 <TextBlock
-                                    Text="{Binding Config.ButtonZr, Converter={StaticResource Key}}"
+                                    Text="{Binding Config.ButtonZr, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                     TextAlignment="Center" />
                             </ToggleButton>
                         </StackPanel>
@@ -451,11 +494,11 @@
                                 Width="20"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                Text="{locale:Locale ControllerSettingsTriggerR}"
+                                Text="{ext:Locale ControllerSettingsTriggerR}"
                                 TextAlignment="Center" />
                             <ToggleButton Name="ButtonR">
                                 <TextBlock
-                                    Text="{Binding Config.ButtonR, Converter={StaticResource Key}}"
+                                    Text="{Binding Config.ButtonR, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                     TextAlignment="Center" />
                             </ToggleButton>
                         </StackPanel>
@@ -469,11 +512,11 @@
                                 Width="20"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                Text="{locale:Locale ControllerSettingsButtonPlus}"
+                                Text="{ext:Locale ControllerSettingsButtonPlus}"
                                 TextAlignment="Center" />
                             <ToggleButton Name="ButtonPlus">
                                 <TextBlock
-                                    Text="{Binding Config.ButtonPlus, Converter={StaticResource Key}}"
+                                    Text="{Binding Config.ButtonPlus, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                     TextAlignment="Center" />
                             </ToggleButton>
                         </StackPanel>
@@ -492,7 +535,7 @@
                         <TextBlock
                             Margin="0,0,0,10"
                             HorizontalAlignment="Center"
-                            Text="{locale:Locale ControllerSettingsButtons}" />
+                            Text="{ext:Locale ControllerSettingsButtons}" />
                         <StackPanel
                             Orientation="Vertical">
                             <!-- Right Buttons A -->
@@ -504,11 +547,11 @@
                                     Margin="0,0,10,0"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsButtonA}"
+                                    Text="{ext:Locale ControllerSettingsButtonA}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="ButtonA">
                                     <TextBlock
-                                        Text="{Binding Config.ButtonA, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.ButtonA, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -521,11 +564,11 @@
                                     Margin="0,0,10,0"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsButtonB}"
+                                    Text="{ext:Locale ControllerSettingsButtonB}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="ButtonB">
                                     <TextBlock
-                                        Text="{Binding Config.ButtonB, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.ButtonB, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -538,11 +581,11 @@
                                     Margin="0,0,10,0"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsButtonX}"
+                                    Text="{ext:Locale ControllerSettingsButtonX}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="ButtonX">
                                     <TextBlock
-                                        Text="{Binding Config.ButtonX, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.ButtonX, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -555,11 +598,11 @@
                                     Margin="0,0,10,0"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsButtonY}"
+                                    Text="{ext:Locale ControllerSettingsButtonY}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="ButtonY">
                                     <TextBlock
-                                        Text="{Binding Config.ButtonY, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.ButtonY, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -578,7 +621,7 @@
                         <TextBlock
                             Margin="0,0,0,10"
                             HorizontalAlignment="Center"
-                            Text="{locale:Locale ControllerSettingsRStick}" />
+                            Text="{ext:Locale ControllerSettingsRStick}" />
                         <!-- Right Joystick Keyboard -->
                         <StackPanel Orientation="Vertical">
                             <!-- Right Joystick Button -->
@@ -590,11 +633,11 @@
                                     Width="120"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsStickButton}"
+                                    Text="{ext:Locale ControllerSettingsStickButton}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="RightStickButton">
                                     <TextBlock
-                                        Text="{Binding Config.RightStickButton, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.RightStickButton, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -607,11 +650,11 @@
                                     Width="120"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsStickUp}"
+                                    Text="{ext:Locale ControllerSettingsStickUp}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="RightStickUp">
                                     <TextBlock
-                                        Text="{Binding Config.RightStickUp, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.RightStickUp, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -624,11 +667,11 @@
                                     Width="120"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsStickDown}"
+                                    Text="{ext:Locale ControllerSettingsStickDown}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="RightStickDown">
                                     <TextBlock
-                                        Text="{Binding Config.RightStickDown, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.RightStickDown, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -641,11 +684,11 @@
                                     Width="120"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsStickLeft}"
+                                    Text="{ext:Locale ControllerSettingsStickLeft}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="RightStickLeft">
                                     <TextBlock
-                                        Text="{Binding Config.RightStickLeft, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.RightStickLeft, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>
@@ -658,11 +701,11 @@
                                     Width="120"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
-                                    Text="{locale:Locale ControllerSettingsStickRight}"
+                                    Text="{ext:Locale ControllerSettingsStickRight}"
                                     TextAlignment="Center" />
                                 <ToggleButton Name="RightStickRight">
                                     <TextBlock
-                                        Text="{Binding Config.RightStickRight, Converter={StaticResource Key}}"
+                                        Text="{Binding Config.RightStickRight, Converter={x:Static helpers:KeyValueConverter.Instance}}"
                                         TextAlignment="Center" />
                                 </ToggleButton>
                             </StackPanel>

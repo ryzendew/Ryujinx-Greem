@@ -1,4 +1,5 @@
 using ARMeilleure.State;
+using Humanizer;
 using Ryujinx.Common;
 using Ryujinx.Common.Logging;
 using Ryujinx.Common.Memory;
@@ -23,11 +24,13 @@ namespace ARMeilleure.Translation.PTC
     {
         private const string OuterHeaderMagicString = "Pohd\0\0\0\0";
 
-        private const uint InternalVersion = 5518; //! Not to be incremented manually for each change to the ARMeilleure project.
+        private const uint InternalVersion = 7007; //! Not to be incremented manually for each change to the ARMeilleure project.
 
-        private static readonly uint[] _migrateInternalVersions = {
+        private static readonly uint[] _migrateInternalVersions = 
+        [
             1866,
-        };
+            5518,
+        ];
 
         private const int SaveInterval = 30; // Seconds.
 
@@ -41,7 +44,7 @@ namespace ARMeilleure.Translation.PTC
 
         private readonly ManualResetEvent _waitEvent;
 
-        private readonly object _lock;
+        private readonly Lock _lock = new();
 
         private bool _disposed;
 
@@ -58,14 +61,12 @@ namespace ARMeilleure.Translation.PTC
         {
             _ptc = ptc;
 
-            _timer = new Timer(SaveInterval * 1000d);
-            _timer.Elapsed += PreSave;
+            _timer = new Timer(SaveInterval.Seconds());
+            _timer.Elapsed += TimerElapsed;
 
             _outerHeaderMagic = BinaryPrimitives.ReadUInt64LittleEndian(EncodingCache.UTF8NoBOM.GetBytes(OuterHeaderMagicString).AsSpan());
 
             _waitEvent = new ManualResetEvent(true);
-
-            _lock = new object();
 
             _disposed = false;
 
@@ -74,20 +75,33 @@ namespace ARMeilleure.Translation.PTC
             Enabled = false;
         }
 
-        public void AddEntry(ulong address, ExecutionMode mode, bool highCq)
+        private void TimerElapsed(object _, ElapsedEventArgs __) 
+            => new Thread(PreSave) { Name = "Ptc.DiskWriter" }.Start();
+
+        public void AddEntry(ulong address, ExecutionMode mode, bool highCq, bool blacklist = false)
         {
             if (IsAddressInStaticCodeRange(address))
             {
                 Debug.Assert(!highCq);
 
-                lock (_lock)
+                if (blacklist)
                 {
-                    ProfiledFuncs.TryAdd(address, new FuncProfile(mode, highCq: false));
+                    lock (_lock)
+                    {
+                        ProfiledFuncs[address] = new FuncProfile(mode, highCq: false, true);
+                    }
+                }
+                else
+                {
+                    lock (_lock)
+                    {
+                        ProfiledFuncs.TryAdd(address, new FuncProfile(mode, highCq: false, false));
+                    }
                 }
             }
         }
 
-        public void UpdateEntry(ulong address, ExecutionMode mode, bool highCq)
+        public void UpdateEntry(ulong address, ExecutionMode mode, bool highCq, bool? blacklist = null)
         {
             if (IsAddressInStaticCodeRange(address))
             {
@@ -97,7 +111,7 @@ namespace ARMeilleure.Translation.PTC
                 {
                     Debug.Assert(ProfiledFuncs.ContainsKey(address));
 
-                    ProfiledFuncs[address] = new FuncProfile(mode, highCq: true);
+                    ProfiledFuncs[address] = new FuncProfile(mode, highCq: true, blacklist ?? ProfiledFuncs[address].Blacklist);
                 }
             }
         }
@@ -109,11 +123,11 @@ namespace ARMeilleure.Translation.PTC
 
         public ConcurrentQueue<(ulong address, FuncProfile funcProfile)> GetProfiledFuncsToTranslate(TranslatorCache<TranslatedFunction> funcs)
         {
-            var profiledFuncsToTranslate = new ConcurrentQueue<(ulong address, FuncProfile funcProfile)>();
+            ConcurrentQueue<(ulong address, FuncProfile funcProfile)> profiledFuncsToTranslate = new();
 
-            foreach (var profiledFunc in ProfiledFuncs)
+            foreach (KeyValuePair<ulong, FuncProfile> profiledFunc in ProfiledFuncs)
             {
-                if (!funcs.ContainsKey(profiledFunc.Key))
+                if (!funcs.ContainsKey(profiledFunc.Key) && !profiledFunc.Value.Blacklist)
                 {
                     profiledFuncsToTranslate.Enqueue((profiledFunc.Key, profiledFunc.Value));
                 }
@@ -126,6 +140,22 @@ namespace ARMeilleure.Translation.PTC
         {
             ProfiledFuncs.Clear();
             ProfiledFuncs.TrimExcess();
+        }
+
+        public List<ulong> GetBlacklistedFunctions()
+        {
+            List<ulong> funcs = [];
+
+            foreach ((ulong ptr, FuncProfile funcProfile) in ProfiledFuncs)
+            {
+                if (!funcProfile.Blacklist)
+                    continue;
+
+                if (!funcs.Contains(ptr)) 
+                    funcs.Add(ptr);
+            }
+
+            return funcs;
         }
 
         public void PreLoad()
@@ -218,13 +248,18 @@ namespace ARMeilleure.Translation.PTC
                     return false;
                 }
 
+                Func<ulong, FuncProfile, (ulong, FuncProfile)> migrateEntryFunc = null;
+
                 switch (outerHeader.InfoFileVersion)
                 {
                     case InternalVersion:
                         ProfiledFuncs = Deserialize(stream);
                         break;
                     case 1866:
-                        ProfiledFuncs = Deserialize(stream, (address, profile) => (address + 0x500000UL, profile));
+                        migrateEntryFunc = (address, profile) => (address + 0x500000UL, profile);
+                        goto case 5518;
+                    case 5518:
+                        ProfiledFuncs = DeserializeAddBlacklist(stream, migrateEntryFunc);
                         break;
                     default:
                         Logger.Error?.Print(LogClass.Ptc, $"No migration path for {nameof(outerHeader.InfoFileVersion)} '{outerHeader.InfoFileVersion}'. Discarding cache.");
@@ -254,6 +289,16 @@ namespace ARMeilleure.Translation.PTC
             return DeserializeDictionary<ulong, FuncProfile>(stream, DeserializeStructure<FuncProfile>);
         }
 
+        private static Dictionary<ulong, FuncProfile> DeserializeAddBlacklist(Stream stream, Func<ulong, FuncProfile, (ulong, FuncProfile)> migrateEntryFunc = null)
+        {
+            if (migrateEntryFunc != null)
+            {
+                return DeserializeAndUpdateDictionary(stream, (Stream stream) => { return new FuncProfile(DeserializeStructure<FuncProfilePreBlacklist>(stream)); }, migrateEntryFunc);
+            }
+
+            return DeserializeDictionary<ulong, FuncProfile>(stream, (Stream stream) => { return new FuncProfile(DeserializeStructure<FuncProfilePreBlacklist>(stream)); });
+        }
+
         private static ReadOnlySpan<byte> GetReadOnlySpan(MemoryStream memoryStream)
         {
             return new(memoryStream.GetBuffer(), (int)memoryStream.Position, (int)memoryStream.Length - (int)memoryStream.Position);
@@ -264,7 +309,7 @@ namespace ARMeilleure.Translation.PTC
             compressedStream.SetLength(0L);
         }
 
-        private void PreSave(object source, ElapsedEventArgs e)
+        private void PreSave()
         {
             _waitEvent.Reset();
 
@@ -385,13 +430,35 @@ namespace ARMeilleure.Translation.PTC
             }
         }
 
-        [StructLayout(LayoutKind.Sequential, Pack = 1/*, Size = 5*/)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1/*, Size = 6*/)]
         public struct FuncProfile
         {
             public ExecutionMode Mode;
             public bool HighCq;
+            public bool Blacklist;
 
-            public FuncProfile(ExecutionMode mode, bool highCq)
+            public FuncProfile(ExecutionMode mode, bool highCq, bool blacklist)
+            {
+                Mode = mode;
+                HighCq = highCq;
+                Blacklist = blacklist;
+            }
+
+            public FuncProfile(FuncProfilePreBlacklist fp)
+            {
+                Mode = fp.Mode;
+                HighCq = fp.HighCq;
+                Blacklist = false;
+            }
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1/*, Size = 5*/)]
+        public struct FuncProfilePreBlacklist
+        {
+            public ExecutionMode Mode;
+            public bool HighCq;
+
+            public FuncProfilePreBlacklist(ExecutionMode mode, bool highCq)
             {
                 Mode = mode;
                 HighCq = highCq;
@@ -430,7 +497,7 @@ namespace ARMeilleure.Translation.PTC
             {
                 _disposed = true;
 
-                _timer.Elapsed -= PreSave;
+                _timer.Elapsed -= TimerElapsed;
                 _timer.Dispose();
 
                 Wait();

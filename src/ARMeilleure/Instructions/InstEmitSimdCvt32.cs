@@ -118,15 +118,15 @@ namespace ARMeilleure.Instructions
         {
             OpCode32SimdCvtFFixed op = (OpCode32SimdCvtFFixed)context.CurrOp;
 
-            var toFixed = op.Opc == 1;
+            bool toFixed = op.Opc == 1;
             int fracBits = op.Fbits;
-            var unsigned = op.U;
+            bool unsigned = op.U;
 
             if (toFixed) // F32 to S32 or U32 (fixed)
             {
                 EmitVectorUnaryOpF32(context, (op1) =>
                 {
-                    var scaledValue = context.Multiply(op1, ConstF(MathF.Pow(2f, fracBits)));
+                    Operand scaledValue = context.Multiply(op1, ConstF(MathF.Pow(2f, fracBits)));
                     MethodInfo info = unsigned ? typeof(SoftFallback).GetMethod(nameof(SoftFallback.SatF32ToU32)) : typeof(SoftFallback).GetMethod(nameof(SoftFallback.SatF32ToS32));
 
                     return context.Call(info, scaledValue);
@@ -136,7 +136,7 @@ namespace ARMeilleure.Instructions
             {
                 EmitVectorUnaryOpI32(context, (op1) =>
                 {
-                    var floatValue = unsigned ? context.ConvertToFPUI(OperandType.FP32, op1) : context.ConvertToFP(OperandType.FP32, op1);
+                    Operand floatValue = unsigned ? context.ConvertToFPUI(OperandType.FP32, op1) : context.ConvertToFP(OperandType.FP32, op1);
 
                     return context.Multiply(floatValue, ConstF(1f / MathF.Pow(2f, fracBits)));
                 }, !unsigned);
@@ -245,8 +245,8 @@ namespace ARMeilleure.Instructions
             string name = nameof(Math.Round);
 
             MethodInfo info = (op.Size & 1) == 0
-                ? typeof(MathF).GetMethod(name, new Type[] { typeof(float), typeof(MidpointRounding) })
-                : typeof(Math).GetMethod(name, new Type[] { typeof(double), typeof(MidpointRounding) });
+                ? typeof(MathF).GetMethod(name, [typeof(float), typeof(MidpointRounding)])
+                : typeof(Math).GetMethod(name, [typeof(double), typeof(MidpointRounding)]);
 
             return context.Call(info, n, Const((int)roundMode));
         }
@@ -357,10 +357,10 @@ namespace ARMeilleure.Instructions
                         toConvert = EmitRoundMathCall(context, MidpointRounding.ToEven, toConvert);
                         break;
                     case 0b10: // Towards positive infinity
-                        toConvert = EmitUnaryMathCall(context, nameof(Math.Ceiling), toConvert);
+                        toConvert = EmitUnaryMathCall(context, nameof(MathHelper.Ceiling), toConvert);
                         break;
                     case 0b11: // Towards negative infinity
-                        toConvert = EmitUnaryMathCall(context, nameof(Math.Floor), toConvert);
+                        toConvert = EmitUnaryMathCall(context, nameof(MathHelper.Floor), toConvert);
                         break;
                 }
 
@@ -494,10 +494,10 @@ namespace ARMeilleure.Instructions
                         toConvert = EmitRoundMathCall(context, MidpointRounding.ToEven, toConvert);
                         break;
                     case 0b10: // Towards positive infinity
-                        toConvert = EmitUnaryMathCall(context, nameof(Math.Ceiling), toConvert);
+                        toConvert = EmitUnaryMathCall(context, nameof(MathHelper.Ceiling), toConvert);
                         break;
                     case 0b11: // Towards negative infinity
-                        toConvert = EmitUnaryMathCall(context, nameof(Math.Floor), toConvert);
+                        toConvert = EmitUnaryMathCall(context, nameof(MathHelper.Floor), toConvert);
                         break;
                 }
 
@@ -534,7 +534,7 @@ namespace ARMeilleure.Instructions
             }
             else
             {
-                EmitVectorUnaryOpF32(context, (m) => EmitUnaryMathCall(context, nameof(Math.Floor), m));
+                EmitVectorUnaryOpF32(context, (m) => EmitUnaryMathCall(context, nameof(MathHelper.Floor), m));
             }
         }
 
@@ -574,7 +574,7 @@ namespace ARMeilleure.Instructions
             }
             else
             {
-                EmitVectorUnaryOpF32(context, (m) => EmitUnaryMathCall(context, nameof(Math.Ceiling), m));
+                EmitVectorUnaryOpF32(context, (m) => EmitUnaryMathCall(context, nameof(MathHelper.Ceiling), m));
             }
         }
 
@@ -613,7 +613,7 @@ namespace ARMeilleure.Instructions
             }
             else
             {
-                EmitScalarUnaryOpF32(context, (op1) => EmitUnaryMathCall(context, nameof(Math.Truncate), op1));
+                EmitScalarUnaryOpF32(context, (op1) => EmitUnaryMathCall(context, nameof(MathHelper.Truncate), op1));
             }
         }
 

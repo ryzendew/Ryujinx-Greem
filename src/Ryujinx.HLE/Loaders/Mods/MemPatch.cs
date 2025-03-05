@@ -46,7 +46,7 @@ namespace Ryujinx.HLE.Loaders.Mods
                 return;
             }
 
-            foreach (var (patchOffset, patch) in patches._patches)
+            foreach ((uint patchOffset, byte[] patch) in patches._patches)
             {
                 _patches[patchOffset] = patch;
             }
@@ -66,21 +66,29 @@ namespace Ryujinx.HLE.Loaders.Mods
         public int Patch(Span<byte> memory, int protectedOffset = 0)
         {
             int count = 0;
-            foreach (var (offset, patch) in _patches.OrderBy(item => item.Key))
+            foreach ((uint offset, byte[] patch) in _patches.OrderBy(item => item.Key))
             {
                 int patchOffset = (int)offset;
                 int patchSize = patch.Length;
 
-                if (patchOffset < protectedOffset || patchOffset > memory.Length)
+                if (patchOffset < protectedOffset)
                 {
-                    continue; // Add warning?
+                    Logger.Warning?.Print(LogClass.ModLoader, $"Attempted to patch protected memory ({patchOffset:x} is within protected boundary of {protectedOffset:x}).");
+                    continue;
+                }
+                
+                if (patchOffset > memory.Length)
+                {
+                    Logger.Warning?.Print(LogClass.ModLoader, $"Attempted to patch out of bounds memory (offset {patchOffset} ({patchOffset:x}) exceeds memory buffer length {memory.Length}).");
+                    continue;
                 }
 
                 patchOffset -= protectedOffset;
 
                 if (patchOffset + patchSize > memory.Length)
                 {
-                    patchSize = memory.Length - patchOffset; // Add warning?
+                    Logger.Warning?.Print(LogClass.ModLoader, $"Patch offset ({patchOffset:x}) + size ({patchSize}) is greater than the size of the memory buffer ({memory.Length}). Attempting to fix this...");
+                    patchSize = memory.Length - patchOffset;
                 }
 
                 Logger.Info?.Print(LogClass.ModLoader, $"Patching address offset {patchOffset:x} <= {BitConverter.ToString(patch).Replace('-', ' ')} len={patchSize}");

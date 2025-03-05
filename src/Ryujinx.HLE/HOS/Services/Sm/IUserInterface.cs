@@ -2,7 +2,6 @@ using Ryujinx.Common.Logging;
 using Ryujinx.HLE.HOS.Ipc;
 using Ryujinx.HLE.HOS.Kernel;
 using Ryujinx.HLE.HOS.Kernel.Ipc;
-using Ryujinx.HLE.HOS.Services.Apm;
 using Ryujinx.Horizon.Common;
 using System;
 using System.Collections.Generic;
@@ -94,7 +93,7 @@ namespace Ryujinx.HLE.HOS.Services.Sm
             {
                 if (_services.TryGetValue(name, out Type type))
                 {
-                    ServiceAttribute serviceAttribute = (ServiceAttribute)type.GetCustomAttributes(typeof(ServiceAttribute)).First(service => ((ServiceAttribute)service).Name == name);
+                    ServiceAttribute serviceAttribute = type.GetCustomAttributes<ServiceAttribute>().First(service => service.Name == name);
 
                     IpcService service = GetServiceInstance(type, context, serviceAttribute.Parameter);
 

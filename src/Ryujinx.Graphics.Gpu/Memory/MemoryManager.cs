@@ -1,5 +1,4 @@
 using Ryujinx.Common.Memory;
-using Ryujinx.Graphics.Gpu.Image;
 using Ryujinx.Memory;
 using Ryujinx.Memory.Range;
 using System;
@@ -55,7 +54,8 @@ namespace Ryujinx.Graphics.Gpu.Memory
         /// Creates a new instance of the GPU memory manager.
         /// </summary>
         /// <param name="physicalMemory">Physical memory that this memory manager will map into</param>
-        internal MemoryManager(PhysicalMemory physicalMemory)
+        /// <param name="cpuMemorySize">The amount of physical CPU Memory Avaiable on the device.</param>
+        internal MemoryManager(PhysicalMemory physicalMemory, ulong cpuMemorySize)
         {
             Physical = physicalMemory;
             VirtualRangeCache = new VirtualRangeCache(this);
@@ -65,7 +65,7 @@ namespace Ryujinx.Graphics.Gpu.Memory
             MemoryUnmapped += Physical.BufferCache.MemoryUnmappedHandler;
             MemoryUnmapped += VirtualRangeCache.MemoryUnmappedHandler;
             MemoryUnmapped += CounterCache.MemoryUnmappedHandler;
-            Physical.TextureCache.Initialize();
+            Physical.TextureCache.Initialize(cpuMemorySize);
         }
 
         /// <summary>
@@ -457,7 +457,7 @@ namespace Ryujinx.Graphics.Gpu.Memory
 
             int pages = (int)((endVaRounded - va) / PageSize);
 
-            var regions = new List<MemoryRange>();
+            List<MemoryRange> regions = [];
 
             for (int page = 0; page < pages - 1; page++)
             {

@@ -3,7 +3,6 @@ using ARMeilleure.Memory;
 using Ryujinx.Cpu.LightningJit.Arm32;
 using Ryujinx.Cpu.LightningJit.Arm64;
 using Ryujinx.Cpu.LightningJit.State;
-using System;
 using System.Runtime.InteropServices;
 
 namespace Ryujinx.Cpu.LightningJit
@@ -15,7 +14,7 @@ namespace Ryujinx.Cpu.LightningJit
             IMemoryManager memoryManager,
             ulong address,
             AddressTable<ulong> funcTable,
-            IntPtr dispatchStubPtr,
+            nint dispatchStubPtr,
             ExecutionMode executionMode,
             Architecture targetArch)
         {

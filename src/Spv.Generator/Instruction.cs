@@ -64,7 +64,7 @@ namespace Spv.Generator
             _operands.Add(value);
         }
 
-        public void AddOperand(IOperand[] value)
+        public void AddOperand(ReadOnlySpan<IOperand> value)
         {
             foreach (IOperand instruction in value)
             {
@@ -72,7 +72,7 @@ namespace Spv.Generator
             }
         }
 
-        public void AddOperand(LiteralInteger[] value)
+        public void AddOperand(ReadOnlySpan<LiteralInteger> value)
         {
             foreach (LiteralInteger instruction in value)
             {
@@ -85,7 +85,7 @@ namespace Spv.Generator
             AddOperand((IOperand)value);
         }
 
-        public void AddOperand(Instruction[] value)
+        public void AddOperand(ReadOnlySpan<Instruction> value)
         {
             foreach (Instruction instruction in value)
             {
@@ -232,15 +232,15 @@ namespace Spv.Generator
 
         private static readonly Dictionary<Specification.Op, string[]> _operandLabels = new()
         {
-            { Specification.Op.OpConstant, new [] { "Value" } },
-            { Specification.Op.OpTypeInt, new [] { "Width", "Signed" } },
-            { Specification.Op.OpTypeFloat, new [] { "Width" } },
+            { Specification.Op.OpConstant, ["Value"] },
+            { Specification.Op.OpTypeInt, ["Width", "Signed"] },
+            { Specification.Op.OpTypeFloat, ["Width"] },
         };
 
         public override string ToString()
         {
-            var labels = _operandLabels.TryGetValue(Opcode, out var opLabels) ? opLabels : Array.Empty<string>();
-            var result = _resultType == null ? string.Empty : $"{_resultType} ";
+            string[] labels = _operandLabels.TryGetValue(Opcode, out string[] opLabels) ? opLabels : [];
+            string result = _resultType == null ? string.Empty : $"{_resultType} ";
             return $"{result}{Opcode}{_operands.ToString(labels)}";
         }
     }

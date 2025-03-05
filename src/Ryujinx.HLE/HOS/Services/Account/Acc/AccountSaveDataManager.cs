@@ -1,3 +1,4 @@
+using Gommon;
 using Ryujinx.Common.Configuration;
 using Ryujinx.Common.Logging;
 using Ryujinx.Common.Utilities;
@@ -6,12 +7,13 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Ryujinx.HLE.HOS.Services.Account.Acc
 {
-    class AccountSaveDataManager
+    public class AccountSaveDataManager
     {
-        private readonly string _profilesJsonPath = Path.Join(AppDataManager.BaseDirPath, "system", "Profiles.json");
+        private static readonly string _profilesJsonPath = Path.Join(AppDataManager.BaseDirPath, "system", "Profiles.json");
 
         private static readonly ProfilesJsonSerializerContext _serializerContext = new(JsonHelper.GetDefaultSerializerOptions());
 
@@ -27,7 +29,7 @@ namespace Ryujinx.HLE.HOS.Services.Account.Acc
                 {
                     ProfilesJson profilesJson = JsonHelper.DeserializeFromFile(_profilesJsonPath, _serializerContext.ProfilesJson);
 
-                    foreach (var profile in profilesJson.Profiles)
+                    foreach (UserProfileJson profile in profilesJson.Profiles)
                     {
                         UserProfile addedProfile = new(new UserId(profile.UserId), profile.Name, profile.Image, profile.LastModifiedTimestamp);
 
@@ -49,15 +51,25 @@ namespace Ryujinx.HLE.HOS.Services.Account.Acc
             }
         }
 
+        public static Optional<UserProfile> GetLastUsedUser()
+        {
+            ProfilesJson profilesJson = JsonHelper.DeserializeFromFile(_profilesJsonPath, _serializerContext.ProfilesJson);
+
+            return profilesJson.Profiles
+                .FindFirst(profile => profile.UserId == profilesJson.LastOpened)
+                .Convert(profileJson => new UserProfile(new UserId(profileJson.UserId), profileJson.Name,
+                    profileJson.Image, profileJson.LastModifiedTimestamp));
+        }
+
         public void Save(ConcurrentDictionary<string, UserProfile> profiles)
         {
             ProfilesJson profilesJson = new()
             {
-                Profiles = new List<UserProfileJson>(),
+                Profiles = [],
                 LastOpened = LastOpened.ToString(),
             };
 
-            foreach (var profile in profiles)
+            foreach (KeyValuePair<string, UserProfile> profile in profiles)
             {
                 profilesJson.Profiles.Add(new UserProfileJson()
                 {

@@ -3,10 +3,10 @@ using Avalonia.Interactivity;
 using Avalonia.Styling;
 using FluentAvalonia.UI.Controls;
 using Ryujinx.Ava.Common.Locale;
+using Ryujinx.Ava.Common.Models;
 using Ryujinx.Ava.UI.ViewModels;
-using Ryujinx.UI.App.Common;
-using Ryujinx.UI.Common.Helper;
-using Ryujinx.UI.Common.Models;
+using Ryujinx.Ava.Systems.AppLibrary;
+using Ryujinx.Common.Helper;
 using System.Threading.Tasks;
 
 namespace Ryujinx.Ava.UI.Windows
@@ -33,9 +33,9 @@ namespace Ryujinx.Ava.UI.Windows
         {
             ContentDialog contentDialog = new()
             {
-                PrimaryButtonText = "",
-                SecondaryButtonText = "",
-                CloseButtonText = "",
+                PrimaryButtonText = string.Empty,
+                SecondaryButtonText = string.Empty,
+                CloseButtonText = string.Empty,
                 Content = new TitleUpdateWindow(applicationLibrary, applicationData),
                 Title = LocaleManager.Instance.UpdateAndGetDynamicValue(LocaleKeys.GameUpdateWindowHeading, applicationData.Name, applicationData.IdBaseString),
             };

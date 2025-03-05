@@ -1,4 +1,5 @@
 using Ryujinx.Graphics.GAL;
+using Silk.NET.Vulkan;
 
 namespace Ryujinx.Graphics.Vulkan
 {
@@ -50,13 +51,15 @@ namespace Ryujinx.Graphics.Vulkan
 
         public void BindVertexBuffer(VulkanRenderer gd, CommandBufferScoped cbs, uint binding, ref PipelineState state, VertexBufferUpdater updater)
         {
-            var autoBuffer = _buffer;
+            Auto<DisposableBuffer> autoBuffer = _buffer;
 
             if (_handle != BufferHandle.Null)
             {
                 // May need to restride the vertex buffer.
-
-                if (gd.NeedsVertexBufferAlignment(AttributeScalarAlignment, out int alignment) && (_stride % alignment) != 0)
+                //
+                // Fix divide by zero when recovering from missed draw (Oct. 16 2024)
+                // (fixes crash in 'Baldo: The Guardian Owls' opening cutscene)
+                if (gd.NeedsVertexBufferAlignment(AttributeScalarAlignment, out int alignment) && alignment != 0 && (_stride % alignment) != 0)
                 {
                     autoBuffer = gd.BufferManager.GetAlignedVertexBuffer(cbs, _handle, _offset, _size, _stride, alignment);
 
@@ -65,7 +68,7 @@ namespace Ryujinx.Graphics.Vulkan
                         int stride = (_stride + (alignment - 1)) & -alignment;
                         int newSize = (_size / _stride) * stride;
 
-                        var buffer = autoBuffer.Get(cbs, 0, newSize).Value;
+                        Buffer buffer = autoBuffer.Get(cbs, 0, newSize).Value;
 
                         updater.BindVertexBuffer(cbs, binding, buffer, 0, (ulong)newSize, (ulong)stride);
 
@@ -92,7 +95,7 @@ namespace Ryujinx.Graphics.Vulkan
             {
                 int offset = _offset;
                 bool mirrorable = _size <= VertexBufferMaxMirrorable;
-                var buffer = mirrorable ? autoBuffer.GetMirrorable(cbs, ref offset, _size, out _).Value : autoBuffer.Get(cbs, offset, _size).Value;
+                Buffer buffer = mirrorable ? autoBuffer.GetMirrorable(cbs, ref offset, _size, out _).Value : autoBuffer.Get(cbs, offset, _size).Value;
 
                 updater.BindVertexBuffer(cbs, binding, buffer, (ulong)offset, (ulong)_size, (ulong)_stride);
             }

@@ -24,14 +24,14 @@ namespace Ryujinx.Graphics.Vulkan
             PhysicalDevice = physicalDevice;
             PhysicalDeviceFeatures = api.GetPhysicalDeviceFeature(PhysicalDevice);
 
-            api.GetPhysicalDeviceProperties(PhysicalDevice, out var physicalDeviceProperties);
+            api.GetPhysicalDeviceProperties(PhysicalDevice, out PhysicalDeviceProperties physicalDeviceProperties);
             PhysicalDeviceProperties = physicalDeviceProperties;
 
             api.GetPhysicalDeviceMemoryProperties(PhysicalDevice, out PhysicalDeviceMemoryProperties);
 
             unsafe
             {
-                DeviceName = Marshal.PtrToStringAnsi((IntPtr)physicalDeviceProperties.DeviceName);
+                DeviceName = Marshal.PtrToStringAnsi((nint)physicalDeviceProperties.DeviceName);
             }
 
             uint propertiesCount = 0;
@@ -50,7 +50,7 @@ namespace Ryujinx.Graphics.Vulkan
 
             unsafe
             {
-                DeviceExtensions = extensionProperties.Select(x => Marshal.PtrToStringAnsi((IntPtr)x.ExtensionName)).ToImmutableHashSet();
+                DeviceExtensions = extensionProperties.Select(x => Marshal.PtrToStringAnsi((nint)x.ExtensionName)).ToImmutableHashSet();
             }
         }
 

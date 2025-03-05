@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace Ryujinx.HLE.HOS.Services.Ssl
 {
@@ -43,7 +44,7 @@ namespace Ryujinx.HLE.HOS.Services.Ssl
         private bool _initialized;
         private Dictionary<CaCertificateId, CertStoreEntry> _certificates;
 
-        private readonly object _lock = new();
+        private readonly Lock _lock = new();
 
         private struct CertStoreFileHeader
         {
@@ -128,7 +129,7 @@ namespace Ryujinx.HLE.HOS.Services.Ssl
 
                     IFileSystem romfs = nca.OpenFileSystem(NcaSectionType.Data, _fsIntegrityCheckLevel);
 
-                    using var trustedCertsFileRef = new UniqueRef<IFile>();
+                    using UniqueRef<IFile> trustedCertsFileRef = new();
 
                     Result result = romfs.OpenFile(ref trustedCertsFileRef.Ref, "/ssl_TrustedCerts.bdf".ToU8Span(), OpenMode.Read);
 

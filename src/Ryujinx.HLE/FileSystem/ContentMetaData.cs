@@ -39,14 +39,14 @@ namespace Ryujinx.HLE.FileSystem
             // TODO: Replace this with a check for IdOffset as soon as LibHac supports it:
             // && entry.IdOffset == programIndex
 
-            foreach (var entry in _cnmt.ContentEntries)
+            foreach (CnmtContentEntry entry in _cnmt.ContentEntries)
             {
                 if (entry.Type != type)
                 {
                     continue;
                 }
 
-                string ncaId = BitConverter.ToString(entry.NcaId).Replace("-", null).ToLower();
+                string ncaId = Convert.ToHexStringLower(entry.NcaId).Replace("-", null);
                 Nca nca = _pfs.GetNca(keySet, $"/{ncaId}.nca");
 
                 if (nca.GetProgramIndex() == programIndex)

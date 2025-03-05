@@ -15,13 +15,11 @@ using System.IO;
 
 namespace Ryujinx.Ava.UI.Views.User
 {
-    public partial class UserProfileImageSelectorView : UserControl
+    public partial class UserProfileImageSelectorView : RyujinxControl<UserProfileImageSelectorViewModel>
     {
         private ContentManager _contentManager;
         private NavigationDialogHost _parent;
         private TempProfile _profile;
-
-        internal UserProfileImageSelectorViewModel ViewModel { get; private set; }
 
         public UserProfileImageSelectorView()
         {
@@ -63,17 +61,16 @@ namespace Ryujinx.Ava.UI.Views.User
 
         private async void Import_OnClick(object sender, RoutedEventArgs e)
         {
-            var window = this.GetVisualRoot() as Window;
-            var result = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            IReadOnlyList<IStorageFile> result = await ((Window)this.GetVisualRoot()!).StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
                 AllowMultiple = false,
                 FileTypeFilter = new List<FilePickerFileType>
                 {
                     new(LocaleManager.Instance[LocaleKeys.AllSupportedFormats])
                     {
-                        Patterns = new[] { "*.jpg", "*.jpeg", "*.png", "*.bmp" },
-                        AppleUniformTypeIdentifiers = new[] { "public.jpeg", "public.png", "com.microsoft.bmp" },
-                        MimeTypes = new[] { "image/jpeg", "image/png", "image/bmp" },
+                        Patterns = ["*.jpg", "*.jpeg", "*.png", "*.bmp"],
+                        AppleUniformTypeIdentifiers = ["public.jpeg", "public.png", "com.microsoft.bmp"],
+                        MimeTypes = ["image/jpeg", "image/png", "image/bmp"],
                     },
                 },
             });
@@ -100,16 +97,16 @@ namespace Ryujinx.Ava.UI.Views.User
 
         private static byte[] ProcessProfileImage(byte[] buffer)
         {
-            using var bitmap = SKBitmap.Decode(buffer);
+            using SKBitmap bitmap = SKBitmap.Decode(buffer);
 
-            var resizedBitmap = bitmap.Resize(new SKImageInfo(256, 256), SKFilterQuality.High);
+            SKBitmap resizedBitmap = bitmap.Resize(new SKImageInfo(256, 256), SKFilterQuality.High);
 
-            using var streamJpg = new MemoryStream();
+            using MemoryStream streamJpg = new();
 
             if (resizedBitmap != null)
             {
-                using var image = SKImage.FromBitmap(resizedBitmap);
-                using var dataJpeg = image.Encode(SKEncodedImageFormat.Jpeg, 100);
+                using SKImage image = SKImage.FromBitmap(resizedBitmap);
+                using SKData dataJpeg = image.Encode(SKEncodedImageFormat.Jpeg, 100);
 
                 dataJpeg.SaveTo(streamJpg);
             }

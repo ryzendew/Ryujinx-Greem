@@ -51,7 +51,7 @@ namespace Ryujinx.Memory.Tracking
 
         private event Action OnDirty;
 
-        private readonly object _preActionLock = new();
+        private readonly Lock _preActionLock = new();
         private RegionSignal _preAction; // Action to perform before a read or write. This will block the memory access.
         private PreciseRegionSignal _preciseAction; // Action to perform on a precise read or write.
         private readonly List<VirtualRegion> _regions;
@@ -199,7 +199,7 @@ namespace Ryujinx.Memory.Tracking
             _allRegions.AddRange(_regions);
             _allRegions.AddRange(_guestRegions);
 
-            foreach (var region in _allRegions)
+            foreach (VirtualRegion region in _allRegions)
             {
                 region.Handles.Add(this);
             }
@@ -217,8 +217,8 @@ namespace Ryujinx.Memory.Tracking
         {
             // Assumes the tracking lock is held, so nothing else can signal right now.
 
-            var oldBitmap = Bitmap;
-            var oldBit = DirtyBit;
+            ConcurrentBitmap oldBitmap = Bitmap;
+            int oldBit = DirtyBit;
 
             bitmap.Set(bit, Dirty);
 

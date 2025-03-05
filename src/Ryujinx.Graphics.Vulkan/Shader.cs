@@ -5,7 +5,9 @@ using shaderc;
 using Silk.NET.Vulkan;
 using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
+using Result = shaderc.Result;
 
 namespace Ryujinx.Graphics.Vulkan
 {
@@ -13,9 +15,9 @@ namespace Ryujinx.Graphics.Vulkan
     {
         // The shaderc.net dependency's Options constructor and dispose are not thread safe.
         // Take this lock when using them.
-        private static readonly object _shaderOptionsLock = new();
+        private static readonly Lock _shaderOptionsLock = new();
 
-        private static readonly IntPtr _ptrMainEntryPointName = Marshal.StringToHGlobalAnsi("main");
+        private static readonly nint _ptrMainEntryPointName = Marshal.StringToHGlobalAnsi("main");
 
         private readonly Vk _api;
         private readonly Device _device;
@@ -57,7 +59,7 @@ namespace Ryujinx.Graphics.Vulkan
 
                 fixed (byte* pCode = spirv)
                 {
-                    var shaderModuleCreateInfo = new ShaderModuleCreateInfo
+                    ShaderModuleCreateInfo shaderModuleCreateInfo = new()
                     {
                         SType = StructureType.ShaderModuleCreateInfo,
                         CodeSize = (uint)spirv.Length,
@@ -86,7 +88,7 @@ namespace Ryujinx.Graphics.Vulkan
 
             options.SetTargetEnvironment(TargetEnvironment.Vulkan, EnvironmentVersion.Vulkan_1_2);
             Compiler compiler = new(options);
-            var scr = compiler.Compile(glsl, "Ryu", GetShaderCShaderStage(stage));
+            Result scr = compiler.Compile(glsl, "Ryu", GetShaderCShaderStage(stage));
 
             lock (_shaderOptionsLock)
             {
@@ -100,7 +102,7 @@ namespace Ryujinx.Graphics.Vulkan
                 return null;
             }
 
-            var spirvBytes = new Span<byte>((void*)scr.CodePointer, (int)scr.CodeLength);
+            Span<byte> spirvBytes = new((void*)scr.CodePointer, (int)scr.CodeLength);
 
             byte[] code = new byte[(scr.CodeLength + 3) & ~3];
 

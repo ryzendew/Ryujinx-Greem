@@ -1,6 +1,7 @@
 using Ryujinx.SDL2.Common;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using static SDL2.SDL;
 
 namespace Ryujinx.Input.SDL2
@@ -9,7 +10,7 @@ namespace Ryujinx.Input.SDL2
     {
         private readonly Dictionary<int, string> _gamepadsInstanceIdsMapping;
         private readonly List<string> _gamepadsIds;
-        private readonly object _lock = new();
+        private readonly Lock _lock = new();
 
         public ReadOnlySpan<string> GamepadsIds
         {
@@ -30,7 +31,7 @@ namespace Ryujinx.Input.SDL2
         public SDL2GamepadDriver()
         {
             _gamepadsInstanceIdsMapping = new Dictionary<int, string>();
-            _gamepadsIds = new List<string>();
+            _gamepadsIds = [];
 
             SDL2Driver.Instance.Initialize();
             SDL2Driver.Instance.OnJoyStickConnected += HandleJoyStickConnected;
@@ -115,7 +116,10 @@ namespace Ryujinx.Input.SDL2
                 {
                     lock (_lock)
                     {
-                        _gamepadsIds.Add(id);
+                        if (joystickDeviceId <= _gamepadsIds.FindLastIndex(_ => true))
+                            _gamepadsIds.Insert(joystickDeviceId, id);
+                        else
+                            _gamepadsIds.Add(id);
                     }
 
                     OnGamepadConnected?.Invoke(id);
@@ -160,14 +164,25 @@ namespace Ryujinx.Input.SDL2
                 return null;
             }
 
-            IntPtr gamepadHandle = SDL_GameControllerOpen(joystickIndex);
+            nint gamepadHandle = SDL_GameControllerOpen(joystickIndex);
 
-            if (gamepadHandle == IntPtr.Zero)
+            if (gamepadHandle == nint.Zero)
             {
                 return null;
             }
 
             return new SDL2Gamepad(gamepadHandle, id);
+        }
+
+        public IEnumerable<IGamepad> GetGamepads()
+        {
+            lock (_gamepadsIds)
+            {
+                foreach (string gamepadId in _gamepadsIds)
+                {
+                    yield return GetGamepad(gamepadId);
+                }
+            }
         }
     }
 }

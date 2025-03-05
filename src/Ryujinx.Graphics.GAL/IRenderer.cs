@@ -1,4 +1,6 @@
 using Ryujinx.Common.Configuration;
+using Ryujinx.Common.Logging;
+using Ryujinx.Graphics.GAL.Multithreading;
 using System;
 using System.Threading;
 
@@ -10,9 +12,25 @@ namespace Ryujinx.Graphics.GAL
 
         bool PreferThreading { get; }
 
+        public IRenderer TryMakeThreaded(BackendThreading backendThreading = BackendThreading.Auto)
+        {
+            if (backendThreading is BackendThreading.On ||
+                (backendThreading is BackendThreading.Auto && PreferThreading))
+            {
+                Logger.Info?.PrintMsg(LogClass.Gpu, $"Backend Threading ({backendThreading}): True");
+                return new ThreadedRenderer(this);
+            }
+            
+            Logger.Info?.PrintMsg(LogClass.Gpu, $"Backend Threading ({backendThreading}): False");
+
+            return this;
+        }
+
         IPipeline Pipeline { get; }
 
         IWindow Window { get; }
+
+        uint ProgramCount { get; }
 
         void BackgroundContextAction(Action action, bool alwaysBackground = false);
 

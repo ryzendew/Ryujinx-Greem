@@ -1,5 +1,7 @@
 using Avalonia.Logging;
 using Avalonia.Utilities;
+using Gommon;
+using Ryujinx.Ava.Systems.Configuration;
 using Ryujinx.Common.Logging;
 using System;
 using System.Text;
@@ -13,20 +15,26 @@ namespace Ryujinx.Ava.UI.Helpers
 
     internal class LoggerAdapter : ILogSink
     {
+        private static bool _avaloniaLogsEnabled = ConfigurationState.Instance.Logger.EnableAvaloniaLog; 
+        
         public static void Register()
         {
             AvaLogger.Sink = new LoggerAdapter();
+            ConfigurationState.Instance.Logger.EnableAvaloniaLog.Event 
+                += (_, e) => _avaloniaLogsEnabled = e.NewValue;
         }
 
-        private static RyuLogger.Log? GetLog(AvaLogLevel level)
+        private static RyuLogger.Log? GetLog(AvaLogLevel level, string area)
         {
+            if (!_avaloniaLogsEnabled) return null;
+            
             return level switch
             {
                 AvaLogLevel.Verbose => RyuLogger.Debug,
                 AvaLogLevel.Debug => RyuLogger.Debug,
                 AvaLogLevel.Information => RyuLogger.Debug,
                 AvaLogLevel.Warning => RyuLogger.Debug,
-                AvaLogLevel.Error => RyuLogger.Error,
+                AvaLogLevel.Error => area is "IME" ? RyuLogger.Debug : RyuLogger.Error,
                 AvaLogLevel.Fatal => RyuLogger.Error,
                 _ => throw new ArgumentOutOfRangeException(nameof(level), level, null),
             };
@@ -34,23 +42,23 @@ namespace Ryujinx.Ava.UI.Helpers
 
         public bool IsEnabled(AvaLogLevel level, string area)
         {
-            return GetLog(level) != null;
+            return GetLog(level, area) != null;
         }
 
         public void Log(AvaLogLevel level, string area, object source, string messageTemplate)
         {
-            GetLog(level)?.PrintMsg(RyuLogClass.UI, Format(level, area, messageTemplate, source, null));
+            GetLog(level, area)?.PrintMsg(RyuLogClass.UI, Format(level, area, messageTemplate, source, null));
         }
 
         public void Log(AvaLogLevel level, string area, object source, string messageTemplate, params object[] propertyValues)
         {
-            GetLog(level)?.PrintMsg(RyuLogClass.UI, Format(level, area, messageTemplate, source, propertyValues));
+            GetLog(level, area)?.PrintMsg(RyuLogClass.UI, Format(level, area, messageTemplate, source, propertyValues));
         }
 
         private static string Format(AvaLogLevel level, string area, string template, object source, object[] v)
         {
-            var result = new StringBuilder();
-            var r = new CharacterReader(template.AsSpan());
+            StringBuilder result = new();
+            CharacterReader r = new(template.AsSpan());
             int i = 0;
 
             result.Append('[');
@@ -63,7 +71,7 @@ namespace Ryujinx.Ava.UI.Helpers
 
             while (!r.End)
             {
-                var c = r.Take();
+                char c = r.Take();
 
                 if (c != '{')
                 {
@@ -90,7 +98,7 @@ namespace Ryujinx.Ava.UI.Helpers
             if (source != null)
             {
                 result.Append(" (");
-                result.Append(source.GetType().Name);
+                result.Append(source.GetType().AsFullNamePrettyString());
                 result.Append(" #");
                 result.Append(source.GetHashCode());
                 result.Append(')');

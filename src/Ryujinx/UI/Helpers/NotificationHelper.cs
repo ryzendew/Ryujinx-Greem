@@ -28,7 +28,7 @@ namespace Ryujinx.Ava.UI.Helpers
                 Margin = new Thickness(0, 0, 15, 40),
             };
 
-            var maybeAsyncWorkQueue = new Lazy<AsyncWorkQueue<Notification>>(
+            Lazy<AsyncWorkQueue<Notification>> maybeAsyncWorkQueue = new(
                 () => new AsyncWorkQueue<Notification>(notification =>
                     {
                         Dispatcher.UIThread.Post(() =>
@@ -57,14 +57,51 @@ namespace Ryujinx.Ava.UI.Helpers
 
         public static void Show(string title, string text, NotificationType type, bool waitingExit = false, Action onClick = null, Action onClose = null)
         {
-            var delay = waitingExit ? TimeSpan.FromMilliseconds(0) : TimeSpan.FromMilliseconds(NotificationDelayInMs);
+            TimeSpan delay = waitingExit ? TimeSpan.FromMilliseconds(0) : TimeSpan.FromMilliseconds(NotificationDelayInMs);
 
             _notifications.Add(new Notification(title, text, type, delay, onClick, onClose));
         }
 
-        public static void ShowError(string message)
-        {
-            Show(LocaleManager.Instance[LocaleKeys.DialogErrorTitle], $"{LocaleManager.Instance[LocaleKeys.DialogErrorMessage]}\n\n{message}", NotificationType.Error);
-        }
+        public static void ShowError(string message) =>
+            ShowError(
+                LocaleManager.Instance[LocaleKeys.DialogErrorTitle], 
+                $"{LocaleManager.Instance[LocaleKeys.DialogErrorMessage]}\n\n{message}"
+            );
+
+        public static void ShowInformation(string title, string text, bool waitingExit = false, Action onClick = null, Action onClose = null) =>
+            Show(
+                title,
+                text,
+                NotificationType.Information,
+                waitingExit, 
+                onClick, 
+                onClose);
+
+        public static void ShowSuccess(string title, string text, bool waitingExit = false, Action onClick = null, Action onClose = null) =>
+            Show(
+                title,
+                text,
+                NotificationType.Success,
+                waitingExit, 
+                onClick, 
+                onClose);
+
+        public static void ShowWarning(string title, string text, bool waitingExit = false, Action onClick = null, Action onClose = null) =>
+            Show(
+                title,
+                text,
+                NotificationType.Warning,
+                waitingExit, 
+                onClick, 
+                onClose);
+
+        public static void ShowError(string title, string text, bool waitingExit = false, Action onClick = null, Action onClose = null) =>
+            Show(
+                title,
+                text,
+                NotificationType.Error,
+                waitingExit, 
+                onClick, 
+                onClose);
     }
 }

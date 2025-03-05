@@ -4,7 +4,6 @@ using Ryujinx.Common.Logging;
 using Ryujinx.Common.Memory;
 using Ryujinx.Memory;
 using System;
-using System.Buffers;
 using System.Collections.Concurrent;
 using System.Threading;
 
@@ -72,7 +71,7 @@ namespace Ryujinx.Audio.Backends.SDL2
             }
         }
 
-        private unsafe void Update(IntPtr userdata, IntPtr stream, int streamLength)
+        private unsafe void Update(nint userdata, nint stream, int streamLength)
         {
             Span<byte> streamSpan = new((void*)stream, streamLength);
 
@@ -97,7 +96,7 @@ namespace Ryujinx.Audio.Backends.SDL2
 
             fixed (byte* p = samples)
             {
-                IntPtr pStreamSrc = (IntPtr)p;
+                nint pStreamSrc = (nint)p;
 
                 // Zero the dest buffer
                 streamSpan.Clear();

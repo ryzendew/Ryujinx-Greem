@@ -9,7 +9,7 @@ namespace ARMeilleure.Translation
 {
     public static class TranslatorTestMethods
     {
-        public delegate int FpFlagsPInvokeTest(IntPtr managedMethod);
+        public delegate int FpFlagsPInvokeTest(nint managedMethod);
 
         private static bool SetPlatformFtz(EmitterContext context, bool ftz)
         {
@@ -139,7 +139,7 @@ namespace ARMeilleure.Translation
 
             ControlFlowGraph cfg = context.GetControlFlowGraph();
 
-            OperandType[] argTypes = new OperandType[] { OperandType.I64 };
+            OperandType[] argTypes = [OperandType.I64];
 
             return Compiler.Compile(cfg, argTypes, OperandType.I32, CompilerOptions.HighCq, RuntimeInformation.ProcessArchitecture).Map<FpFlagsPInvokeTest>();
         }

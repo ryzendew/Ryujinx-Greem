@@ -21,8 +21,8 @@ namespace Ryujinx.HLE.HOS.Kernel.Threading
         {
             _context = context;
 
-            _condVarThreads = new List<KThread>();
-            _arbiterThreads = new List<KThread>();
+            _condVarThreads = [];
+            _arbiterThreads = [];
         }
 
         public Result ArbitrateLock(int ownerHandle, ulong mutexAddress, int requesterHandle)
@@ -200,7 +200,7 @@ namespace Ryujinx.HLE.HOS.Kernel.Threading
 
             WakeThreads(_condVarThreads, count, TryAcquireMutex, x => x.CondVarAddress == address);
 
-            if (!_condVarThreads.Exists(x => x.CondVarAddress == address))
+            if (!_condVarThreads.Any(x => x.CondVarAddress == address))
             {
                 KernelTransfer.KernelToUser(address, 0);
             }
@@ -562,8 +562,8 @@ namespace Ryujinx.HLE.HOS.Kernel.Threading
             Action<KThread> removeCallback,
             Func<KThread, bool> predicate)
         {
-            var candidates = threads.Where(predicate).OrderBy(x => x.DynamicPriority);
-            var toSignal = (count > 0 ? candidates.Take(count) : candidates).ToArray();
+            IOrderedEnumerable<KThread> candidates = threads.Where(predicate).OrderBy(x => x.DynamicPriority);
+            KThread[] toSignal = (count > 0 ? candidates.Take(count) : candidates).ToArray();
 
             foreach (KThread thread in toSignal)
             {

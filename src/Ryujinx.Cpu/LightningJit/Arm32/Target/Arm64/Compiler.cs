@@ -2,7 +2,6 @@ using ARMeilleure.Common;
 using ARMeilleure.Memory;
 using Ryujinx.Cpu.LightningJit.CodeGen;
 using Ryujinx.Cpu.LightningJit.CodeGen.Arm64;
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
@@ -24,10 +23,10 @@ namespace Ryujinx.Cpu.LightningJit.Arm32.Target.Arm64
             public readonly MemoryManagerType MemoryManagerType;
             public readonly TailMerger TailMerger;
             public readonly AddressTable<ulong> FuncTable;
-            public readonly IntPtr DispatchStubPointer;
+            public readonly nint DispatchStubPointer;
 
             private readonly RegisterSaveRestore _registerSaveRestore;
-            private readonly IntPtr _pageTablePointer;
+            private readonly nint _pageTablePointer;
 
             public Context(
                 CodeWriter writer,
@@ -36,8 +35,8 @@ namespace Ryujinx.Cpu.LightningJit.Arm32.Target.Arm64
                 TailMerger tailMerger,
                 AddressTable<ulong> funcTable,
                 RegisterSaveRestore registerSaveRestore,
-                IntPtr dispatchStubPointer,
-                IntPtr pageTablePointer)
+                nint dispatchStubPointer,
+                nint pageTablePointer)
             {
                 Writer = writer;
                 RegisterAllocator = registerAllocator;
@@ -226,7 +225,7 @@ namespace Ryujinx.Cpu.LightningJit.Arm32.Target.Arm64
             }
         }
 
-        public static CompiledFunction Compile(CpuPreset cpuPreset, IMemoryManager memoryManager, ulong address, AddressTable<ulong> funcTable, IntPtr dispatchStubPtr, bool isThumb)
+        public static CompiledFunction Compile(CpuPreset cpuPreset, IMemoryManager memoryManager, ulong address, AddressTable<ulong> funcTable, nint dispatchStubPtr, bool isThumb)
         {
             MultiBlock multiBlock = Decoder<InstEmit>.DecodeMulti(cpuPreset, memoryManager, address, isThumb);
 

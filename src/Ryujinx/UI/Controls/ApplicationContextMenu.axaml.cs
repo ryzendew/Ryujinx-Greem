@@ -6,13 +6,16 @@ using LibHac.Fs;
 using LibHac.Tools.FsSystem.NcaUtils;
 using Ryujinx.Ava.Common;
 using Ryujinx.Ava.Common.Locale;
+using Ryujinx.Ava.Common.Models;
 using Ryujinx.Ava.UI.Helpers;
 using Ryujinx.Ava.UI.ViewModels;
+using Ryujinx.Ava.UI.Views.Misc;
 using Ryujinx.Ava.UI.Windows;
+using Ryujinx.Ava.Utilities;
+using Ryujinx.Ava.Systems.AppLibrary;
 using Ryujinx.Common.Configuration;
+using Ryujinx.Common.Helper;
 using Ryujinx.HLE.HOS;
-using Ryujinx.UI.App.Common;
-using Ryujinx.UI.Common.Helper;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
@@ -23,6 +26,7 @@ namespace Ryujinx.Ava.UI.Controls
 {
     public class ApplicationContextMenu : MenuFlyout
     {
+        
         public ApplicationContextMenu()
         {
             InitializeComponent();
@@ -68,7 +72,7 @@ namespace Ryujinx.Ava.UI.Controls
 
         private static void OpenSaveDirectory(MainWindowViewModel viewModel, SaveDataType saveDataType, UserId userId)
         {
-            var saveDataFilter = SaveDataFilter.Make(viewModel.SelectedApplication.Id, saveDataType, userId, saveDataId: default, index: default);
+            SaveDataFilter saveDataFilter = SaveDataFilter.Make(viewModel.SelectedApplication.Id, saveDataType, userId, saveDataId: default, index: default);
 
             ApplicationHelper.OpenSaveDir(in saveDataFilter, viewModel.SelectedApplication.Id, viewModel.SelectedApplication.ControlHolder, viewModel.SelectedApplication.Name);
         }
@@ -88,11 +92,14 @@ namespace Ryujinx.Ava.UI.Controls
         public async void OpenCheatManager_Click(object sender, RoutedEventArgs args)
         {
             if (sender is MenuItem { DataContext: MainWindowViewModel { SelectedApplication: not null } viewModel })
-                await new CheatWindow(
-                    viewModel.VirtualFileSystem,
-                    viewModel.SelectedApplication.IdString,
-                    viewModel.SelectedApplication.Name,
-                    viewModel.SelectedApplication.Path).ShowDialog((Window)viewModel.TopLevel);
+                await StyleableAppWindow.ShowAsync(
+                    new CheatWindow(
+                        viewModel.VirtualFileSystem,
+                        viewModel.SelectedApplication.IdString,
+                        viewModel.SelectedApplication.Name,
+                        viewModel.SelectedApplication.Path
+                    )
+                );
         }
 
         public void OpenModsDirectory_Click(object sender, RoutedEventArgs args)
@@ -120,7 +127,11 @@ namespace Ryujinx.Ava.UI.Controls
         public async void OpenModManager_Click(object sender, RoutedEventArgs args)
         {
             if (sender is MenuItem { DataContext: MainWindowViewModel { SelectedApplication: not null } viewModel })
-                await ModManagerWindow.Show(viewModel.SelectedApplication.Id, viewModel.SelectedApplication.Name);
+                await ModManagerWindow.Show(
+                    viewModel.SelectedApplication.Id, 
+                    viewModel.SelectedApplication.IdBase, 
+                    viewModel.ApplicationLibrary, 
+                    viewModel.SelectedApplication.Name);
         }
 
         public async void PurgePtcCache_Click(object sender, RoutedEventArgs args)
@@ -138,7 +149,7 @@ namespace Ryujinx.Ava.UI.Controls
                 DirectoryInfo mainDir = new(Path.Combine(AppDataManager.GamesDirPath, viewModel.SelectedApplication.IdString, "cache", "cpu", "0"));
                 DirectoryInfo backupDir = new(Path.Combine(AppDataManager.GamesDirPath, viewModel.SelectedApplication.IdString, "cache", "cpu", "1"));
 
-                List<FileInfo> cacheFiles = new();
+                List<FileInfo> cacheFiles = [];
 
                 if (mainDir.Exists)
                 {
@@ -148,6 +159,52 @@ namespace Ryujinx.Ava.UI.Controls
                 if (backupDir.Exists)
                 {
                     cacheFiles.AddRange(backupDir.EnumerateFiles("*.cache"));
+                }
+
+                if (cacheFiles.Count > 0)
+                {
+                    foreach (FileInfo file in cacheFiles)
+                    {
+                        try
+                        {
+                            file.Delete();
+                        }
+                        catch (Exception ex)
+                        {
+                            await ContentDialogHelper.CreateErrorDialog(LocaleManager.Instance.UpdateAndGetDynamicValue(LocaleKeys.DialogPPTCDeletionErrorMessage, file.Name, ex));
+                        }
+                    }
+                }
+            }
+        }
+
+        public async void NukePtcCache_Click(object sender, RoutedEventArgs args)
+        {
+            if (sender is not MenuItem { DataContext: MainWindowViewModel { SelectedApplication: not null } viewModel })
+                return;
+
+            UserResult result = await ContentDialogHelper.CreateLocalizedConfirmationDialog(
+                LocaleManager.Instance[LocaleKeys.DialogWarning],
+                LocaleManager.Instance.UpdateAndGetDynamicValue(LocaleKeys.DialogPPTCNukeMessage, viewModel.SelectedApplication.Name)
+            );
+
+            if (result == UserResult.Yes)
+            {
+                DirectoryInfo mainDir = new(Path.Combine(AppDataManager.GamesDirPath, viewModel.SelectedApplication.IdString, "cache", "cpu", "0"));
+                DirectoryInfo backupDir = new(Path.Combine(AppDataManager.GamesDirPath, viewModel.SelectedApplication.IdString, "cache", "cpu", "1"));
+
+                List<FileInfo> cacheFiles = [];
+
+                if (mainDir.Exists)
+                {
+                    cacheFiles.AddRange(mainDir.EnumerateFiles("*.cache"));
+                    cacheFiles.AddRange(mainDir.EnumerateFiles("*.info"));
+                }
+
+                if (backupDir.Exists)
+                {
+                    cacheFiles.AddRange(backupDir.EnumerateFiles("*.cache"));
+                    cacheFiles.AddRange(backupDir.EnumerateFiles("*.info"));
                 }
 
                 if (cacheFiles.Count > 0)
@@ -181,8 +238,8 @@ namespace Ryujinx.Ava.UI.Controls
             {
                 DirectoryInfo shaderCacheDir = new(Path.Combine(AppDataManager.GamesDirPath, viewModel.SelectedApplication.IdString, "cache", "shader"));
 
-                List<DirectoryInfo> oldCacheDirectories = new();
-                List<FileInfo> newCacheFiles = new();
+                List<DirectoryInfo> oldCacheDirectories = [];
+                List<FileInfo> newCacheFiles = [];
 
                 if (shaderCacheDir.Exists)
                 {
@@ -243,7 +300,7 @@ namespace Ryujinx.Ava.UI.Controls
         {
             if (sender is MenuItem { DataContext: MainWindowViewModel { SelectedApplication: not null } viewModel })
             {
-                string shaderCacheDir = Path.Combine(AppDataManager.GamesDirPath, viewModel.SelectedApplication.IdString, "cache", "shader");
+                string shaderCacheDir = Path.Combine(AppDataManager.GamesDirPath, viewModel.SelectedApplication.IdString.ToLower(), "cache", "shader");
 
                 if (!Directory.Exists(shaderCacheDir))
                 {
@@ -275,13 +332,29 @@ namespace Ryujinx.Ava.UI.Controls
                     viewModel.SelectedApplication.Path,
                     viewModel.SelectedApplication.Name);
         }
+        
+        public async void ExtractAocRomFs_Click(object sender, RoutedEventArgs args)
+        {
+            if (sender is not MenuItem { DataContext: MainWindowViewModel { SelectedApplication: not null } viewModel })
+                return;
+
+            DownloadableContentModel selectedDlc = await DlcSelectView.Show(viewModel.SelectedApplication.Id, viewModel.ApplicationLibrary);
+            
+            if (selectedDlc is not null)
+            {
+                await ApplicationHelper.ExtractAoc(
+                    viewModel.StorageProvider,
+                    selectedDlc.ContainerPath,
+                    selectedDlc.FileName);
+            }
+        }
 
         public async void ExtractApplicationLogo_Click(object sender, RoutedEventArgs args)
         {
             if (sender is not MenuItem { DataContext: MainWindowViewModel { SelectedApplication: not null } viewModel })
                 return;
 
-            var result = await viewModel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            IReadOnlyList<IStorageFolder> result = await viewModel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
             {
                 Title = LocaleManager.Instance[LocaleKeys.FolderDialogExtractTitle],
                 AllowMultiple = false,
@@ -296,13 +369,13 @@ namespace Ryujinx.Ava.UI.Controls
                 viewModel.SelectedApplication.Path,
                 viewModel.SelectedApplication.Name);
 
-            var iconFile = await result[0].CreateFileAsync($"{viewModel.SelectedApplication.IdString}.png");
-            await using var fileStream = await iconFile.OpenWriteAsync();
+            IStorageFile iconFile = await result[0].CreateFileAsync($"{viewModel.SelectedApplication.IdString}.png");
+            await using Stream fileStream = await iconFile.OpenWriteAsync();
 
-            using var bitmap = SKBitmap.Decode(viewModel.SelectedApplication.Icon)
+            using SKBitmap bitmap = SKBitmap.Decode(viewModel.SelectedApplication.Icon)
                 .Resize(new SKSizeI(512, 512), SKFilterQuality.High);
 
-            using var png = bitmap.Encode(SKEncodedImageFormat.Png, 100);
+            using SKData png = bitmap.Encode(SKEncodedImageFormat.Png, 100);
 
             png.SaveTo(fileStream);
         }
@@ -318,10 +391,41 @@ namespace Ryujinx.Ava.UI.Controls
                 );
         }
 
+        public async void EditGameConfiguration_Click(object sender, RoutedEventArgs args)
+        {
+            if (sender is MenuItem { DataContext: MainWindowViewModel { SelectedApplication: not null } viewModel })
+            {
+                await StyleableAppWindow.ShowAsync(new GameSpecificSettingsWindow(viewModel));
+
+                // just checking for file presence
+                viewModel.SelectedApplication.HasIndependentConfiguration = File.Exists(Program.GetDirGameUserConfig(viewModel.SelectedApplication.IdString,false,false));
+
+                viewModel.RefreshView();
+            }
+        }
+
+        public async void OpenApplicationCompatibility_Click(object sender, RoutedEventArgs args)
+        {
+            if (sender is MenuItem { DataContext: MainWindowViewModel { SelectedApplication: not null } viewModel })
+                await CompatibilityList.Show(viewModel.SelectedApplication.IdString);
+        }
+               
+        public async void OpenApplicationData_Click(object sender, RoutedEventArgs args)
+        {
+            if (sender is MenuItem { DataContext: MainWindowViewModel { SelectedApplication: not null } viewModel })
+                await ApplicationDataView.Show(viewModel.SelectedApplication);
+        }
+
         public async void RunApplication_Click(object sender, RoutedEventArgs args)
         {
             if (sender is MenuItem { DataContext: MainWindowViewModel { SelectedApplication: not null } viewModel })
                 await viewModel.LoadApplication(viewModel.SelectedApplication);
+        }
+
+        public async void TrimXCI_Click(object sender, RoutedEventArgs args)
+        {
+            if (sender is MenuItem { DataContext: MainWindowViewModel { SelectedApplication: not null } viewModel })
+                await viewModel.TrimXCIFile(viewModel.SelectedApplication.Path);
         }
     }
 }

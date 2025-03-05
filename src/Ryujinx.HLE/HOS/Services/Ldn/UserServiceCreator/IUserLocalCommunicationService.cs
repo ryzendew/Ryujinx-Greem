@@ -9,6 +9,8 @@ using Ryujinx.HLE.HOS.Ipc;
 using Ryujinx.HLE.HOS.Kernel.Threading;
 using Ryujinx.HLE.HOS.Services.Ldn.Types;
 using Ryujinx.HLE.HOS.Services.Ldn.UserServiceCreator.LdnMitm;
+using Ryujinx.HLE.HOS.Services.Ldn.UserServiceCreator.LdnRyu;
+using Ryujinx.HLE.HOS.Services.Ldn.UserServiceCreator.Types;
 using Ryujinx.Horizon.Common;
 using Ryujinx.Memory;
 using System;
@@ -60,7 +62,7 @@ namespace Ryujinx.HLE.HOS.Services.Ldn.UserServiceCreator
             // TODO: Call nn::arp::GetApplicationControlProperty here when implemented.
             ApplicationControlProperty controlProperty = context.Device.Processes.ActiveApplication.ApplicationControlProperties;
 
-            foreach (var localCommunicationId in controlProperty.LocalCommunicationId.ItemsRo)
+            foreach (ulong localCommunicationId in controlProperty.LocalCommunicationId.ItemsRo)
             {
                 if (localCommunicationId == localCommunicationIdChecked)
                 {
@@ -158,7 +160,7 @@ namespace Ryujinx.HLE.HOS.Services.Ldn.UserServiceCreator
             }
             else
             {
-                return Array.Empty<NodeLatestUpdate>();
+                return [];
             }
         }
 
@@ -175,19 +177,37 @@ namespace Ryujinx.HLE.HOS.Services.Ldn.UserServiceCreator
 
             if (_state == NetworkState.AccessPointCreated || _state == NetworkState.StationConnected)
             {
-                (_, UnicastIPAddressInformation unicastAddress) = NetworkHelpers.GetLocalInterface(context.Device.Configuration.MultiplayerLanInterfaceId);
-
-                if (unicastAddress == null)
+                ProxyConfig config = _state switch
                 {
-                    context.ResponseData.Write(NetworkHelpers.ConvertIpv4Address(DefaultIPAddress));
-                    context.ResponseData.Write(NetworkHelpers.ConvertIpv4Address(DefaultSubnetMask));
+                    NetworkState.AccessPointCreated => _accessPoint.Config,
+                    NetworkState.StationConnected => _station.Config,
+
+                    _ => default
+                };
+
+                if (config.ProxyIp == 0)
+                {
+                    (_, UnicastIPAddressInformation unicastAddress) = NetworkHelpers.GetLocalInterface(context.Device.Configuration.MultiplayerLanInterfaceId);
+
+                    if (unicastAddress == null)
+                    {
+                        context.ResponseData.Write(NetworkHelpers.ConvertIpv4Address(DefaultIPAddress));
+                        context.ResponseData.Write(NetworkHelpers.ConvertIpv4Address(DefaultSubnetMask));
+                    }
+                    else
+                    {
+                        Logger.Info?.Print(LogClass.ServiceLdn, $"Console's LDN IP is \"{unicastAddress.Address}\".");
+
+                        context.ResponseData.Write(NetworkHelpers.ConvertIpv4Address(unicastAddress.Address));
+                        context.ResponseData.Write(NetworkHelpers.ConvertIpv4Address(unicastAddress.IPv4Mask));
+                    }
                 }
                 else
                 {
-                    Logger.Info?.Print(LogClass.ServiceLdn, $"Console's LDN IP is \"{unicastAddress.Address}\".");
+                    Logger.Info?.Print(LogClass.ServiceLdn, $"LDN obtained proxy IP.");
 
-                    context.ResponseData.Write(NetworkHelpers.ConvertIpv4Address(unicastAddress.Address));
-                    context.ResponseData.Write(NetworkHelpers.ConvertIpv4Address(unicastAddress.IPv4Mask));
+                    context.ResponseData.Write(config.ProxyIp);
+                    context.ResponseData.Write(config.ProxySubnetMask);
                 }
             }
             else
@@ -421,7 +441,7 @@ namespace Ryujinx.HLE.HOS.Services.Ldn.UserServiceCreator
 
         private ResultCode ScanInternal(IVirtualMemoryManager memory, ushort channel, ScanFilter scanFilter, ulong bufferPosition, ulong bufferSize, out ulong counter)
         {
-            ulong networkInfoSize = (ulong)Marshal.SizeOf(typeof(NetworkInfo));
+            ulong networkInfoSize = (ulong)Marshal.SizeOf<NetworkInfo>();
             ulong maxGames = bufferSize / networkInfoSize;
 
             MemoryHelper.FillWithZeros(memory, bufferPosition, (int)bufferSize);
@@ -1066,6 +1086,25 @@ namespace Ryujinx.HLE.HOS.Services.Ldn.UserServiceCreator
 
                         switch (mode)
                         {
+                            case MultiplayerMode.LdnRyu:
+                                try
+                                {
+                                    string ldnServer = context.Device.Configuration.MultiplayerLdnServer 
+                                                       ?? throw new InvalidOperationException("Cannot initialize RyuLDN with a null Multiplayer server.");
+
+                                    if (!IPAddress.TryParse(ldnServer, out IPAddress ipAddress))
+                                    {
+                                        ipAddress = Dns.GetHostEntry(ldnServer).AddressList[0];
+                                    }
+                                    NetworkClient = new LdnMasterProxyClient(ipAddress.ToString(), SharedConstants.LanPlayPort, context.Device.Configuration);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.Error?.Print(LogClass.ServiceLdn, "Could not locate RyuLDN server. Defaulting to stubbed wireless.");
+                                    Logger.Error?.Print(LogClass.ServiceLdn, ex.Message);
+                                    NetworkClient = new LdnDisabledClient();
+                                }
+                                break;
                             case MultiplayerMode.LdnMitm:
                                 NetworkClient = new LdnMitmClient(context.Device.Configuration);
                                 break;
@@ -1103,7 +1142,7 @@ namespace Ryujinx.HLE.HOS.Services.Ldn.UserServiceCreator
             _accessPoint?.Dispose();
             _accessPoint = null;
 
-            NetworkClient?.Dispose();
+            NetworkClient?.DisconnectAndStop();
             NetworkClient = null;
         }
     }

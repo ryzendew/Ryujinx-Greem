@@ -40,8 +40,8 @@ namespace Ryujinx.HLE.HOS.Kernel.Process
 
         public ProcessState State { get; private set; }
 
-        private readonly object _processLock = new();
-        private readonly object _threadingLock = new();
+        private readonly Lock _processLock = new();
+        private readonly Lock _threadingLock = new();
 
         public KAddressArbiter AddressArbiter { get; private set; }
 
@@ -107,7 +107,7 @@ namespace Ryujinx.HLE.HOS.Kernel.Process
             // TODO: Remove once we no longer need to initialize it externally.
             HandleTable = new KHandleTable();
 
-            _threads = new LinkedList<KThread>();
+            _threads = [];
 
             Debugger = new HleProcessDebugger(this);
         }
@@ -277,7 +277,7 @@ namespace Ryujinx.HLE.HOS.Kernel.Process
                 return result;
             }
 
-            result = Capabilities.InitializeForUser(capabilities, MemoryManager);
+            result = Capabilities.InitializeForUser(capabilities, MemoryManager, IsApplication);
 
             if (result != Result.Success)
             {

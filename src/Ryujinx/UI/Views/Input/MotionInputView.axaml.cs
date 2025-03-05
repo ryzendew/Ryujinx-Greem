@@ -1,15 +1,15 @@
 using Avalonia.Controls;
 using FluentAvalonia.UI.Controls;
 using Ryujinx.Ava.Common.Locale;
+using Ryujinx.Ava.UI.Controls;
+using Ryujinx.Ava.UI.Models.Input;
 using Ryujinx.Ava.UI.ViewModels.Input;
 using System.Threading.Tasks;
 
 namespace Ryujinx.Ava.UI.Views.Input
 {
-    public partial class MotionInputView : UserControl
+    public partial class MotionInputView : RyujinxControl<MotionInputViewModel>
     {
-        private readonly MotionInputViewModel _viewModel;
-
         public MotionInputView()
         {
             InitializeComponent();
@@ -17,9 +17,9 @@ namespace Ryujinx.Ava.UI.Views.Input
 
         public MotionInputView(ControllerInputViewModel viewModel)
         {
-            var config = viewModel.Config;
+            GamepadInputConfig config = viewModel.Config;
 
-            _viewModel = new MotionInputViewModel
+            ViewModel = new MotionInputViewModel
             {
                 Slot = config.Slot,
                 AltSlot = config.AltSlot,
@@ -32,7 +32,6 @@ namespace Ryujinx.Ava.UI.Views.Input
             };
 
             InitializeComponent();
-            DataContext = _viewModel;
         }
 
         public static async Task Show(ControllerInputViewModel viewModel)
@@ -43,21 +42,21 @@ namespace Ryujinx.Ava.UI.Views.Input
             {
                 Title = LocaleManager.Instance[LocaleKeys.ControllerMotionTitle],
                 PrimaryButtonText = LocaleManager.Instance[LocaleKeys.ControllerSettingsSave],
-                SecondaryButtonText = "",
+                SecondaryButtonText = string.Empty,
                 CloseButtonText = LocaleManager.Instance[LocaleKeys.ControllerSettingsClose],
                 Content = content,
             };
-            contentDialog.PrimaryButtonClick += (sender, args) =>
+            contentDialog.PrimaryButtonClick += (_, _) =>
             {
-                var config = viewModel.Config;
-                config.Slot = content._viewModel.Slot;
-                config.Sensitivity = content._viewModel.Sensitivity;
-                config.GyroDeadzone = content._viewModel.GyroDeadzone;
-                config.AltSlot = content._viewModel.AltSlot;
-                config.DsuServerHost = content._viewModel.DsuServerHost;
-                config.DsuServerPort = content._viewModel.DsuServerPort;
-                config.EnableCemuHookMotion = content._viewModel.EnableCemuHookMotion;
-                config.MirrorInput = content._viewModel.MirrorInput;
+                GamepadInputConfig config = viewModel.Config;
+                config.Slot = content.ViewModel.Slot;
+                config.Sensitivity = content.ViewModel.Sensitivity;
+                config.GyroDeadzone = content.ViewModel.GyroDeadzone;
+                config.AltSlot = content.ViewModel.AltSlot;
+                config.DsuServerHost = content.ViewModel.DsuServerHost;
+                config.DsuServerPort = content.ViewModel.DsuServerPort;
+                config.EnableCemuHookMotion = content.ViewModel.EnableCemuHookMotion;
+                config.MirrorInput = content.ViewModel.MirrorInput;
             };
 
             await contentDialog.ShowAsync();

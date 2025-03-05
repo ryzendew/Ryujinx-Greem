@@ -1,5 +1,4 @@
 using ARMeilleure.Memory;
-using System;
 
 namespace ARMeilleure.State
 {
@@ -9,7 +8,7 @@ namespace ARMeilleure.State
 
         private readonly NativeContext _nativeContext;
 
-        internal IntPtr NativeContextPtr => _nativeContext.BasePtr;
+        internal nint NativeContextPtr => _nativeContext.BasePtr;
 
         private bool _interrupted;
 

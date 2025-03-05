@@ -15,7 +15,7 @@ namespace ARMeilleure.Common
         private int _freeHint;
         private readonly int _pageCapacity; // Number of entries per page.
         private readonly int _pageLogCapacity;
-        private readonly Dictionary<int, IntPtr> _pages;
+        private readonly Dictionary<int, nint> _pages;
         private readonly BitMap _allocated;
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace ARMeilleure.Common
             }
 
             _allocated = new BitMap(NativeAllocator.Instance);
-            _pages = new Dictionary<int, IntPtr>();
+            _pages = new Dictionary<int, nint>();
             _pageLogCapacity = BitOperations.Log2((uint)(pageSize / sizeof(TEntry)));
             _pageCapacity = 1 << _pageLogCapacity;
         }
@@ -63,7 +63,7 @@ namespace ARMeilleure.Common
                 }
 
                 int index = _freeHint++;
-                var page = GetPage(index);
+                Span<TEntry> page = GetPage(index);
 
                 _allocated.Set(index);
 
@@ -111,7 +111,7 @@ namespace ARMeilleure.Common
                     throw new ArgumentException("Entry at the specified index was not allocated", nameof(index));
                 }
 
-                var page = GetPage(index);
+                Span<TEntry> page = GetPage(index);
 
                 return ref GetValue(page, index);
             }
@@ -136,11 +136,11 @@ namespace ARMeilleure.Common
         /// <returns>Page for the specified <see cref="index"/></returns>
         private unsafe Span<TEntry> GetPage(int index)
         {
-            var pageIndex = (int)((uint)(index & ~(_pageCapacity - 1)) >> _pageLogCapacity);
+            int pageIndex = (int)((uint)(index & ~(_pageCapacity - 1)) >> _pageLogCapacity);
 
-            if (!_pages.TryGetValue(pageIndex, out IntPtr page))
+            if (!_pages.TryGetValue(pageIndex, out nint page))
             {
-                page = (IntPtr)NativeAllocator.Instance.Allocate((uint)sizeof(TEntry) * (uint)_pageCapacity);
+                page = (nint)NativeAllocator.Instance.Allocate((uint)sizeof(TEntry) * (uint)_pageCapacity);
 
                 _pages.Add(pageIndex, page);
             }
@@ -168,7 +168,7 @@ namespace ARMeilleure.Common
             {
                 _allocated.Dispose();
 
-                foreach (var page in _pages.Values)
+                foreach (IntPtr page in _pages.Values)
                 {
                     NativeAllocator.Instance.Free((void*)page);
                 }

@@ -26,7 +26,7 @@ namespace Ryujinx.HLE.Loaders.Processes.Extensions
     {
         private static readonly TitleUpdateMetadataJsonSerializerContext _applicationSerializerContext = new(JsonHelper.GetDefaultSerializerOptions());
 
-        public static ProcessResult Load(this Nca nca, Switch device, Nca patchNca, Nca controlNca)
+        public static ProcessResult Load(this Nca nca, Switch device, Nca patchNca, Nca controlNca, BlitStruct<ApplicationControlProperty>? customNacpData = null)
         {
             // Extract RomFs and ExeFs from NCA.
             IStorage romFs = nca.GetRomFs(device, patchNca);
@@ -49,11 +49,15 @@ namespace Ryujinx.HLE.Loaders.Processes.Extensions
                 ModLoader.GetSdModsBasePath());
 
             // Load Nacp file.
-            var nacpData = new BlitStruct<ApplicationControlProperty>(1);
+            BlitStruct<ApplicationControlProperty> nacpData = new(1);
 
             if (controlNca != null)
             {
                 nacpData = controlNca.GetNacp(device);
+            }
+            else if (customNacpData != null) // if the Application doesn't provide a nacp file but the Application provides an override, use the provided nacp override
+            {
+                nacpData = (BlitStruct<ApplicationControlProperty>)customNacpData;
             }
 
             /* TODO: Rework this since it's wrong and doesn't work as it takes the DisplayVersion from a "potential" non-existent update.
@@ -210,9 +214,9 @@ namespace Ryujinx.HLE.Loaders.Processes.Extensions
 
         public static BlitStruct<ApplicationControlProperty> GetNacp(this Nca controlNca, Switch device)
         {
-            var nacpData = new BlitStruct<ApplicationControlProperty>(1);
+            BlitStruct<ApplicationControlProperty> nacpData = new(1);
 
-            using var controlFile = new UniqueRef<IFile>();
+            using UniqueRef<IFile> controlFile = new();
 
             Result result = controlNca.OpenFileSystem(NcaSectionType.Data, device.System.FsIntegrityCheckLevel)
                                       .OpenFile(ref controlFile.Ref, "/control.nacp".ToU8Span(), OpenMode.Read);
@@ -232,7 +236,7 @@ namespace Ryujinx.HLE.Loaders.Processes.Extensions
         public static Cnmt GetCnmt(this Nca cnmtNca, IntegrityCheckLevel checkLevel, ContentMetaType metaType)
         {
             string path = $"/{metaType}_{cnmtNca.Header.TitleId:x16}.cnmt";
-            using var cnmtFile = new UniqueRef<IFile>();
+            using UniqueRef<IFile> cnmtFile = new();
 
             try
             {

@@ -3,9 +3,9 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:locale="clr-namespace:Ryujinx.Ava.Common.Locale"
+    xmlns:ext="clr-namespace:Ryujinx.Ava.Common.Markup"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    Title="{locale:Locale ErrorWindowTitle}"
+    Title="{ext:Locale ErrorWindowTitle}"
     xmlns:views="using:Ryujinx.Ava.UI.Applet"
     Width="450"
     Height="340"
@@ -25,7 +25,7 @@
             Height="80"
             MinWidth="50"
             Margin="5,10,20,10"
-            Source="resm:Ryujinx.UI.Common.Resources.Logo_Ryujinx.png?assembly=Ryujinx.UI.Common" />
+            Source="resm:Ryujinx.Assets.UIImages.Logo_Ryujinx.png?assembly=Ryujinx" />
         <TextBlock
             Grid.Row="1"
             Grid.Column="1"

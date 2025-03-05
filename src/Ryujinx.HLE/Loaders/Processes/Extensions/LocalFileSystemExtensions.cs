@@ -12,10 +12,10 @@ namespace Ryujinx.HLE.Loaders.Processes
         public static ProcessResult Load(this LocalFileSystem exeFs, Switch device, string romFsPath = "")
         {
             MetaLoader metaLoader = exeFs.GetNpdm();
-            var nacpData = new BlitStruct<ApplicationControlProperty>(1);
+            BlitStruct<ApplicationControlProperty> nacpData = new(1);
             ulong programId = metaLoader.GetProgramId();
 
-            device.Configuration.VirtualFileSystem.ModLoader.CollectMods(new[] { programId });
+            device.Configuration.VirtualFileSystem.ModLoader.CollectMods([programId]);
 
             if (programId != 0)
             {

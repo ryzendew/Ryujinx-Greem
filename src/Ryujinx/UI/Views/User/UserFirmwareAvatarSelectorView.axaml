@@ -9,7 +9,7 @@
     d:DesignWidth="578"
     d:DesignHeight="350"
     x:Class="Ryujinx.Ava.UI.Views.User.UserFirmwareAvatarSelectorView"
-    xmlns:locale="clr-namespace:Ryujinx.Ava.Common.Locale"
+    xmlns:ext="clr-namespace:Ryujinx.Ava.Common.Markup"
     xmlns:viewModels="clr-namespace:Ryujinx.Ava.UI.ViewModels"
     xmlns:helpers="clr-namespace:Ryujinx.Ava.UI.Helpers"
     x:DataType="viewModels:UserFirmwareAvatarSelectorViewModel"
@@ -17,19 +17,10 @@
     <Design.DataContext>
         <viewModels:UserFirmwareAvatarSelectorViewModel />
     </Design.DataContext>
-	<UserControl.Resources>
-		<helpers:BitmapArrayValueConverter x:Key="ByteImage" />
-	</UserControl.Resources>
     <Grid
         Margin="0"
         HorizontalAlignment="Stretch"
-        VerticalAlignment="Stretch">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+        VerticalAlignment="Stretch" RowDefinitions="Auto,*,Auto,Auto">
         <ListBox
             Grid.Row="1"
             BorderThickness="0"
@@ -62,7 +53,7 @@
                     <Panel
                         Background="{Binding BackgroundColor}"
                         Margin="5">
-                        <Image Source="{Binding Data, Converter={StaticResource ByteImage}}" />
+                        <Image Source="{Binding Data, Converter={x:Static helpers:BitmapArrayValueConverter.Instance}}" />
                     </Panel>
                 </DataTemplate>
             </ListBox.ItemTemplate>
@@ -104,7 +95,7 @@
                 </ui:ColorPickerButton.Styles>
             </ui:ColorPickerButton>
             <Button
-                Content="{locale:Locale AvatarChoose}"
+                Content="{ext:Locale AvatarChoose}"
                 Height="35"
                 Name="ChooseButton"
                 Click="ChooseButton_OnClick" />

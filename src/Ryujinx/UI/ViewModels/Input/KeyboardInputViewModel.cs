@@ -1,9 +1,10 @@
 using Avalonia.Svg.Skia;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Ryujinx.Ava.UI.Models.Input;
 
 namespace Ryujinx.Ava.UI.ViewModels.Input
 {
-    public class KeyboardInputViewModel : BaseModel
+    public partial class KeyboardInputViewModel : BaseModel
     {
         private KeyboardInputConfig _config;
         public KeyboardInputConfig Config
@@ -12,6 +13,19 @@ namespace Ryujinx.Ava.UI.ViewModels.Input
             set
             {
                 _config = value;
+
+                OnPropertyChanged();
+            }
+        }
+
+        private StickVisualizer _visualizer;
+        public StickVisualizer Visualizer
+        {
+            get => _visualizer;
+            set
+            {
+                _visualizer = value;
+
                 OnPropertyChanged();
             }
         }
@@ -42,22 +56,14 @@ namespace Ryujinx.Ava.UI.ViewModels.Input
 
         public bool HasSides => IsLeft ^ IsRight;
 
-        private SvgImage _image;
-        public SvgImage Image
-        {
-            get => _image;
-            set
-            {
-                _image = value;
-                OnPropertyChanged();
-            }
-        }
+        [ObservableProperty] private SvgImage _image;
 
         public readonly InputViewModel ParentModel;
 
-        public KeyboardInputViewModel(InputViewModel model, KeyboardInputConfig config)
+        public KeyboardInputViewModel(InputViewModel model, KeyboardInputConfig config, StickVisualizer visualizer)
         {
             ParentModel = model;
+            Visualizer = visualizer;
             model.NotifyChangesEvent += OnParentModelChanged;
             OnParentModelChanged();
             Config = config;

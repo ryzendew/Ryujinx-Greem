@@ -8,6 +8,7 @@ using Ryujinx.Ava.UI.Helpers;
 using Ryujinx.Ava.UI.ViewModels;
 using Ryujinx.Input;
 using Ryujinx.Input.Assigner;
+using Button = Ryujinx.Input.Button;
 using Key = Ryujinx.Common.Configuration.Hid.Key;
 
 namespace Ryujinx.Ava.UI.Views.Settings
@@ -70,20 +71,20 @@ namespace Ryujinx.Ava.UI.Views.Settings
 
                         PointerPressed += MouseClick;
 
-                        var keyboard = (IKeyboard)_avaloniaKeyboardDriver.GetGamepad("0");
+                        IKeyboard keyboard = (IKeyboard)_avaloniaKeyboardDriver.GetGamepad("0");
                         IButtonAssigner assigner = new KeyboardKeyAssigner(keyboard);
 
                         _currentAssigner.ButtonAssigned += (sender, e) =>
                         {
                             if (e.ButtonValue.HasValue)
                             {
-                                var viewModel = (DataContext) as SettingsViewModel;
-                                var buttonValue = e.ButtonValue.Value;
+                                SettingsViewModel viewModel = (DataContext) as SettingsViewModel;
+                                Button buttonValue = e.ButtonValue.Value;
 
                                 switch (button.Name)
                                 {
-                                    case "ToggleVsync":
-                                        viewModel.KeyboardHotkey.ToggleVsync = buttonValue.AsHidType<Key>();
+                                    case "ToggleVSyncMode":
+                                        viewModel.KeyboardHotkey.ToggleVSyncMode = buttonValue.AsHidType<Key>();
                                         break;
                                     case "Screenshot":
                                         viewModel.KeyboardHotkey.Screenshot = buttonValue.AsHidType<Key>();
@@ -108,6 +109,12 @@ namespace Ryujinx.Ava.UI.Views.Settings
                                         break;
                                     case "VolumeDown":
                                         viewModel.KeyboardHotkey.VolumeDown = buttonValue.AsHidType<Key>();
+                                        break;
+                                    case "CustomVSyncIntervalIncrement":
+                                        viewModel.KeyboardHotkey.CustomVSyncIntervalIncrement = buttonValue.AsHidType<Key>();
+                                        break;
+                                    case "CustomVSyncIntervalDecrement":
+                                        viewModel.KeyboardHotkey.CustomVSyncIntervalDecrement = buttonValue.AsHidType<Key>();
                                         break;
                                 }
                             }

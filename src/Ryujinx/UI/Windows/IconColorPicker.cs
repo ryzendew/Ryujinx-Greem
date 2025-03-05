@@ -21,15 +21,15 @@ namespace Ryujinx.Ava.UI.Windows
 
         private readonly struct PaletteColor(int qck, byte r, byte g, byte b)
         {
-            public int Qck { get; } = qck;
-            public byte R { get; } = r;
-            public byte G { get; } = g;
-            public byte B { get; } = b;
+            public int Qck => qck;
+            public byte R => r;
+            public byte G => g;
+            public byte B => b;
         }
 
         public static SKColor GetFilteredColor(SKBitmap image)
         {
-            var color = GetColor(image);
+            SKColor color = GetColor(image);
 
 
             // We don't want colors that are too dark.
@@ -49,19 +49,10 @@ namespace Ryujinx.Ava.UI.Windows
 
         public static SKColor GetColor(SKBitmap image)
         {
-            var colors = new PaletteColor[TotalColors];
-            var dominantColorBin = new Dictionary<int, int>();
+            PaletteColor[] colors = new PaletteColor[TotalColors];
+            Dictionary<int, int> dominantColorBin = new();
 
-            var buffer = GetBuffer(image);
-
-            int w = image.Width;
-            int w8 = w << 8;
-            int h8 = image.Height << 8;
-
-#pragma warning disable IDE0059 // Unnecessary assignment
-            int xStep = w8 / ColorsPerLine;
-            int yStep = h8 / ColorsPerLine;
-#pragma warning restore IDE0059
+            SKColor[] buffer = GetBuffer(image);
 
             int i = 0;
             int maxHitCount = 0;
@@ -79,7 +70,7 @@ namespace Ryujinx.Ava.UI.Windows
                     byte cg = pixel.Green;
                     byte cb = pixel.Blue;
 
-                    var qck = GetQuantizedColorKey(cr, cg, cb);
+                    int qck = GetQuantizedColorKey(cr, cg, cb);
 
                     if (dominantColorBin.TryGetValue(qck, out int hitCount))
                     {
@@ -104,7 +95,7 @@ namespace Ryujinx.Ava.UI.Windows
 
             for (i = 0; i < TotalColors; i++)
             {
-                var score = GetColorScore(dominantColorBin, maxHitCount, colors[i]);
+                int score = GetColorScore(dominantColorBin, maxHitCount, colors[i]);
 
                 if (highScore < score)
                 {
@@ -118,7 +109,7 @@ namespace Ryujinx.Ava.UI.Windows
 
         public static SKColor[] GetBuffer(SKBitmap image)
         {
-            var pixels = new SKColor[image.Width * image.Height];
+            SKColor[] pixels = new SKColor[image.Width * image.Height];
 
             for (int y = 0; y < image.Height; y++)
             {
@@ -133,17 +124,17 @@ namespace Ryujinx.Ava.UI.Windows
 
         private static int GetColorScore(Dictionary<int, int> dominantColorBin, int maxHitCount, PaletteColor color)
         {
-            var hitCount = dominantColorBin[color.Qck];
-            var balancedHitCount = BalanceHitCount(hitCount, maxHitCount);
-            var quantSat = (GetColorSaturation(color) >> SatQuantShift) << SatQuantShift;
-            var value = GetColorValue(color);
+            int hitCount = dominantColorBin[color.Qck];
+            int balancedHitCount = BalanceHitCount(hitCount, maxHitCount);
+            int quantSat = (GetColorSaturation(color) >> SatQuantShift) << SatQuantShift;
+            int value = GetColorValue(color);
 
             // If the color is rarely used on the image,
-            // then chances are that theres a better candidate, even if the saturation value
+            // then chances are that there's a better candidate, even if the saturation value
             // is high. By multiplying the saturation value with a weight, we can lower
             // it if the color is almost never used (hit count is low).
-            var satWeighted = quantSat;
-            var satWeight = balancedHitCount << 5;
+            int satWeighted = quantSat;
+            int satWeight = balancedHitCount << 5;
             if (satWeight < 0x100)
             {
                 satWeighted = (satWeighted * satWeight) >> 8;
@@ -151,7 +142,7 @@ namespace Ryujinx.Ava.UI.Windows
 
             // Compute score from saturation and dominance of the color.
             // We prefer more vivid colors over dominant ones, so give more weight to the saturation.
-            var score = ((satWeighted << 1) + balancedHitCount) * value;
+            int score = ((satWeighted << 1) + balancedHitCount) * value;
 
             return score;
         }

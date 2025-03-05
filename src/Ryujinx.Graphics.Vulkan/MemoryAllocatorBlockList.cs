@@ -14,9 +14,9 @@ namespace Ryujinx.Graphics.Vulkan
         public class Block : IComparable<Block>
         {
             public DeviceMemory Memory { get; private set; }
-            public IntPtr HostPointer { get; private set; }
+            public nint HostPointer { get; private set; }
             public ulong Size { get; }
-            public bool Mapped => HostPointer != IntPtr.Zero;
+            public bool Mapped => HostPointer != nint.Zero;
 
             private readonly struct Range : IComparable<Range>
             {
@@ -37,22 +37,22 @@ namespace Ryujinx.Graphics.Vulkan
 
             private readonly List<Range> _freeRanges;
 
-            public Block(DeviceMemory memory, IntPtr hostPointer, ulong size)
+            public Block(DeviceMemory memory, nint hostPointer, ulong size)
             {
                 Memory = memory;
                 HostPointer = hostPointer;
                 Size = size;
-                _freeRanges = new List<Range>
-                {
-                    new Range(0, size),
-                };
+                _freeRanges =
+                [
+                    new(0, size)
+                ];
             }
 
             public ulong Allocate(ulong size, ulong alignment)
             {
                 for (int i = 0; i < _freeRanges.Count; i++)
                 {
-                    var range = _freeRanges[i];
+                    Range range = _freeRanges[i];
 
                     ulong alignedOffset = BitUtils.AlignUp(range.Offset, alignment);
                     ulong sizeDelta = alignedOffset - range.Offset;
@@ -88,7 +88,7 @@ namespace Ryujinx.Graphics.Vulkan
 
             private void InsertFreeRange(ulong offset, ulong size)
             {
-                var range = new Range(offset, size);
+                Range range = new(offset, size);
                 int index = _freeRanges.BinarySearch(range);
                 if (index < 0)
                 {
@@ -101,7 +101,7 @@ namespace Ryujinx.Graphics.Vulkan
             private void InsertFreeRangeComingled(ulong offset, ulong size)
             {
                 ulong endOffset = offset + size;
-                var range = new Range(offset, size);
+                Range range = new(offset, size);
                 int index = _freeRanges.BinarySearch(range);
                 if (index < 0)
                 {
@@ -146,7 +146,7 @@ namespace Ryujinx.Graphics.Vulkan
                 if (Mapped)
                 {
                     api.UnmapMemory(device, Memory);
-                    HostPointer = IntPtr.Zero;
+                    HostPointer = nint.Zero;
                 }
 
                 if (Memory.Handle != 0)
@@ -171,7 +171,7 @@ namespace Ryujinx.Graphics.Vulkan
 
         public MemoryAllocatorBlockList(Vk api, Device device, int memoryTypeIndex, int blockAlignment, bool forBuffer)
         {
-            _blocks = new List<Block>();
+            _blocks = [];
             _api = api;
             _device = device;
             MemoryTypeIndex = memoryTypeIndex;
@@ -194,7 +194,7 @@ namespace Ryujinx.Graphics.Vulkan
             {
                 for (int i = 0; i < _blocks.Count; i++)
                 {
-                    var block = _blocks[i];
+                    Block block = _blocks[i];
 
                     if (block.Mapped == map && block.Size >= size)
                     {
@@ -213,25 +213,25 @@ namespace Ryujinx.Graphics.Vulkan
 
             ulong blockAlignedSize = BitUtils.AlignUp(size, (ulong)_blockAlignment);
 
-            var memoryAllocateInfo = new MemoryAllocateInfo
+            MemoryAllocateInfo memoryAllocateInfo = new()
             {
                 SType = StructureType.MemoryAllocateInfo,
                 AllocationSize = blockAlignedSize,
                 MemoryTypeIndex = (uint)MemoryTypeIndex,
             };
 
-            _api.AllocateMemory(_device, in memoryAllocateInfo, null, out var deviceMemory).ThrowOnError();
+            _api.AllocateMemory(_device, in memoryAllocateInfo, null, out DeviceMemory deviceMemory).ThrowOnError();
 
-            IntPtr hostPointer = IntPtr.Zero;
+            nint hostPointer = nint.Zero;
 
             if (map)
             {
                 void* pointer = null;
                 _api.MapMemory(_device, deviceMemory, 0, blockAlignedSize, 0, ref pointer).ThrowOnError();
-                hostPointer = (IntPtr)pointer;
+                hostPointer = (nint)pointer;
             }
 
-            var newBlock = new Block(deviceMemory, hostPointer, blockAlignedSize);
+            Block newBlock = new(deviceMemory, hostPointer, blockAlignedSize);
 
             InsertBlock(newBlock);
 
@@ -241,14 +241,14 @@ namespace Ryujinx.Graphics.Vulkan
             return new MemoryAllocation(this, newBlock, deviceMemory, GetHostPointer(newBlock, newBlockOffset), newBlockOffset, size);
         }
 
-        private static IntPtr GetHostPointer(Block block, ulong offset)
+        private static nint GetHostPointer(Block block, ulong offset)
         {
-            if (block.HostPointer == IntPtr.Zero)
+            if (block.HostPointer == nint.Zero)
             {
-                return IntPtr.Zero;
+                return nint.Zero;
             }
 
-            return (IntPtr)((nuint)block.HostPointer + offset);
+            return (nint)((nuint)block.HostPointer + offset);
         }
 
         public void Free(Block block, ulong offset, ulong size)

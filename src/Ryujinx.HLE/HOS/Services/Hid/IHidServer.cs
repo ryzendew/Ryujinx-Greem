@@ -130,6 +130,26 @@ namespace Ryujinx.HLE.HOS.Services.Hid
 
             return ResultCode.Success;
         }
+        
+        [CommandCmif(26)]
+        // ActivateDebugMouse(nn::applet::AppletResourceUserId)
+        public ResultCode ActivateDebugMouse(ServiceCtx context)
+        {
+            long appletResourceUserId = context.RequestData.ReadInt64();
+
+            context.Device.Hid.DebugMouse.Active = true;
+
+            // Initialize entries to avoid issues with some games.
+
+            for (int entry = 0; entry < Hid.SharedMemEntryCount; entry++)
+            {
+                context.Device.Hid.DebugMouse.Update();
+            }
+
+            Logger.Stub?.PrintStub(LogClass.ServiceHid, new { appletResourceUserId });
+
+            return ResultCode.Success;
+        }
 
         [CommandCmif(31)]
         // ActivateKeyboard(nn::applet::AppletResourceUserId)
@@ -682,6 +702,18 @@ namespace Ryujinx.HLE.HOS.Services.Hid
 
             return ResultCode.Success;
         }
+        
+        [CommandCmif(92)]
+        // SetGestureOutputRanges(pid, ushort Unknown0)
+        public ResultCode SetGestureOutputRanges(ServiceCtx context)
+        {
+            ulong pid = context.Request.HandleDesc.PId;
+            ushort unknown0 = context.RequestData.ReadUInt16();
+
+            Logger.Stub?.PrintStub(LogClass.ServiceHid, new { pid, unknown0 });
+
+            return ResultCode.Success;
+        }
 
         [CommandCmif(100)]
         // SetSupportedNpadStyleSet(pid, nn::applet::AppletResourceUserId, nn::hid::NpadStyleTag)
@@ -840,8 +872,8 @@ namespace Ryujinx.HLE.HOS.Services.Hid
 
             // Initialize entries to avoid issues with some games.
 
-            List<GamepadInput> emptyGamepadInputs = new();
-            List<SixAxisInput> emptySixAxisInputs = new();
+            List<GamepadInput> emptyGamepadInputs = [];
+            List<SixAxisInput> emptySixAxisInputs = [];
 
             for (int player = 0; player < NpadDevices.MaxControllers; player++)
             {

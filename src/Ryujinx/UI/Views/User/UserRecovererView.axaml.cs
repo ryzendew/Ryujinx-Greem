@@ -4,10 +4,11 @@ using FluentAvalonia.UI.Controls;
 using FluentAvalonia.UI.Navigation;
 using Ryujinx.Ava.Common.Locale;
 using Ryujinx.Ava.UI.Controls;
+using Ryujinx.Ava.UI.ViewModels;
 
 namespace Ryujinx.Ava.UI.Views.User
 {
-    public partial class UserRecovererView : UserControl
+    public partial class UserRecovererView : RyujinxControl<UserProfileViewModel>
     {
         private NavigationDialogHost _parent;
 
@@ -27,7 +28,7 @@ namespace Ryujinx.Ava.UI.Views.User
                 switch (arg.NavigationMode)
                 {
                     case NavigationMode.New:
-                        var parent = (NavigationDialogHost)arg.Parameter;
+                        NavigationDialogHost parent = (NavigationDialogHost)arg.Parameter;
 
                         _parent = parent;
 

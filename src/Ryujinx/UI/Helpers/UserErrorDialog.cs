@@ -1,5 +1,5 @@
 using Ryujinx.Ava.Common.Locale;
-using Ryujinx.UI.Common;
+using Ryujinx.Common.UI;
 using System.Threading.Tasks;
 
 namespace Ryujinx.Ava.UI.Helpers
@@ -40,7 +40,7 @@ namespace Ryujinx.Ava.UI.Helpers
             await ContentDialogHelper.CreateInfoDialog(
                 LocaleManager.Instance.UpdateAndGetDynamicValue(LocaleKeys.DialogUserErrorDialogMessage, errorCode, GetErrorTitle(error)),
                 GetErrorDescription(error),
-                "",
+                string.Empty,
                 LocaleManager.Instance[LocaleKeys.InputDialogOk],
                 LocaleManager.Instance.UpdateAndGetDynamicValue(LocaleKeys.DialogUserErrorDialogTitle, errorCode));
         }

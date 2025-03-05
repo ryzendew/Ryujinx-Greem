@@ -5,6 +5,7 @@ using LibHac.FsSystem;
 using LibHac.Ncm;
 using LibHac.Tools.FsSystem;
 using LibHac.Tools.FsSystem.NcaUtils;
+using Ryujinx.Common.Helper;
 using Ryujinx.Common.Logging;
 using Ryujinx.HLE.HOS.Services.Am.AppletAE;
 using Ryujinx.HLE.HOS.SystemState;
@@ -14,7 +15,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace Ryujinx.HLE.HOS.Applets.Error
 {
@@ -29,9 +29,6 @@ namespace Ryujinx.HLE.HOS.Applets.Error
         private byte[] _errorStorage;
 
         public event EventHandler AppletStateChanged;
-
-        [GeneratedRegex(@"[^\u0000\u0009\u000A\u000D\u0020-\uFFFF]..")]
-        private static partial Regex CleanTextRegex();
 
         public ErrorApplet(Horizon horizon)
         {
@@ -107,7 +104,7 @@ namespace Ryujinx.HLE.HOS.Applets.Error
 
         private static string CleanText(string value)
         {
-            return CleanTextRegex().Replace(value, "").Replace("\0", "");
+            return Patterns.CleanText.Replace(value, string.Empty).Replace("\0", string.Empty);
         }
 
         private string GetMessageText(uint module, uint description, string key)
@@ -122,24 +119,22 @@ namespace Ryujinx.HLE.HOS.Applets.Error
 
             if (romfs.FileExists(filePath))
             {
-                using var binaryFile = new UniqueRef<IFile>();
+                using UniqueRef<IFile> binaryFile = new();
 
                 romfs.OpenFile(ref binaryFile.Ref, filePath.ToU8Span(), OpenMode.Read).ThrowIfFailure();
                 StreamReader reader = new(binaryFile.Get.AsStream(), Encoding.Unicode);
 
                 return CleanText(reader.ReadToEnd());
             }
-            else
-            {
-                return "";
-            }
+
+            return string.Empty;
         }
 
         private string[] GetButtonsText(uint module, uint description, string key)
         {
             string buttonsText = GetMessageText(module, description, key);
 
-            return (buttonsText == "") ? null : buttonsText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+            return (buttonsText == string.Empty) ? null : buttonsText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
         }
 
         private void ParseErrorCommonArg()
@@ -156,20 +151,22 @@ namespace Ryujinx.HLE.HOS.Applets.Error
 
             string message = GetMessageText(module, description, "DlgMsg");
 
-            if (message == "")
+            if (message == string.Empty)
             {
                 message = "An error has occured.\n\nPlease try again later.";
             }
 
             string[] buttons = GetButtonsText(module, description, "DlgBtn");
 
-            bool showDetails = _horizon.Device.UIHandler.DisplayErrorAppletDialog($"Error Code: {module}-{description:0000}", "\n" + message, buttons);
+            (uint Module, uint Description) errorCodeTuple = (module, uint.Parse(description.ToString("0000")));
+            
+            bool showDetails = _horizon.Device.UIHandler.DisplayErrorAppletDialog($"Error Code: {module}-{description:0000}", "\n" + message, buttons, errorCodeTuple);
             if (showDetails)
             {
                 message = GetMessageText(module, description, "FlvMsg");
                 buttons = GetButtonsText(module, description, "FlvBtn");
 
-                _horizon.Device.UIHandler.DisplayErrorAppletDialog($"Details: {module}-{description:0000}", "\n" + message, buttons);
+                _horizon.Device.UIHandler.DisplayErrorAppletDialog($"Details: {module}-{description:0000}", "\n" + message, buttons, errorCodeTuple);
             }
         }
 
@@ -186,11 +183,11 @@ namespace Ryujinx.HLE.HOS.Applets.Error
             string messageText = Encoding.ASCII.GetString(messageTextBuffer.TakeWhile(b => !b.Equals(0)).ToArray());
             string detailsText = Encoding.ASCII.GetString(detailsTextBuffer.TakeWhile(b => !b.Equals(0)).ToArray());
 
-            List<string> buttons = new();
+            List<string> buttons = [];
 
             // TODO: Handle the LanguageCode to return the translated "OK" and "Details".
 
-            if (detailsText.Trim() != "")
+            if (detailsText.Trim() != string.Empty)
             {
                 buttons.Add("Details");
             }
@@ -204,11 +201,6 @@ namespace Ryujinx.HLE.HOS.Applets.Error
 
                 _horizon.Device.UIHandler.DisplayErrorAppletDialog($"Error Number: {applicationErrorArg.ErrorNumber} (Details)", "\n" + detailsText, buttons.ToArray());
             }
-        }
-
-        public ResultCode GetResult()
-        {
-            return ResultCode.Success;
         }
     }
 }

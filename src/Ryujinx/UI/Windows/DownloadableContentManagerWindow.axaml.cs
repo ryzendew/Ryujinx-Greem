@@ -3,10 +3,10 @@ using Avalonia.Interactivity;
 using Avalonia.Styling;
 using FluentAvalonia.UI.Controls;
 using Ryujinx.Ava.Common.Locale;
+using Ryujinx.Ava.Common.Models;
 using Ryujinx.Ava.UI.ViewModels;
-using Ryujinx.UI.App.Common;
-using Ryujinx.UI.Common.Helper;
-using Ryujinx.UI.Common.Models;
+using Ryujinx.Ava.Systems.AppLibrary;
+using Ryujinx.Common.Helper;
 using System.Threading.Tasks;
 
 namespace Ryujinx.Ava.UI.Windows
@@ -33,9 +33,9 @@ namespace Ryujinx.Ava.UI.Windows
         {
             ContentDialog contentDialog = new()
             {
-                PrimaryButtonText = "",
-                SecondaryButtonText = "",
-                CloseButtonText = "",
+                PrimaryButtonText = string.Empty,
+                SecondaryButtonText = string.Empty,
+                CloseButtonText = string.Empty,
                 Content = new DownloadableContentManagerWindow(applicationLibrary, applicationData),
                 Title = string.Format(LocaleManager.Instance[LocaleKeys.DlcWindowTitle], applicationData.Name, applicationData.IdBaseString),
             };
@@ -61,29 +61,23 @@ namespace Ryujinx.Ava.UI.Windows
 
         private void RemoveDLC(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button)
+            if (sender is Button { DataContext: DownloadableContentModel dlc })
             {
-                if (button.DataContext is DownloadableContentModel model)
-                {
-                    ViewModel.Remove(model);
-                }
+                ViewModel.Remove(dlc);
             }
         }
 
         private void OpenLocation(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button)
+            if (sender is Button { DataContext: DownloadableContentModel dlc })
             {
-                if (button.DataContext is DownloadableContentModel model)
-                {
-                    OpenHelper.LocateFile(model.ContainerPath);
-                }
+                OpenHelper.LocateFile(dlc.ContainerPath);
             }
         }
 
         private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            foreach (var content in e.AddedItems)
+            foreach (object content in e.AddedItems)
             {
                 if (content is DownloadableContentModel model)
                 {
@@ -91,7 +85,7 @@ namespace Ryujinx.Ava.UI.Windows
                 }
             }
 
-            foreach (var content in e.RemovedItems)
+            foreach (object content in e.RemovedItems)
             {
                 if (content is DownloadableContentModel model)
                 {

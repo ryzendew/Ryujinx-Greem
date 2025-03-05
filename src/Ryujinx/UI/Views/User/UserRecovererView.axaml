@@ -8,7 +8,7 @@
     d:DesignHeight="450"
     Width="500"
     Height="400"
-    xmlns:locale="clr-namespace:Ryujinx.Ava.Common.Locale"
+    xmlns:ext="clr-namespace:Ryujinx.Ava.Common.Markup"
     xmlns:ui="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
     xmlns:viewModels="clr-namespace:Ryujinx.Ava.UI.ViewModels"
     x:Class="Ryujinx.Ava.UI.Views.User.UserRecovererView"
@@ -18,11 +18,7 @@
         <viewModels:UserProfileViewModel />
     </Design.DataContext>
     <Grid HorizontalAlignment="Stretch"
-          VerticalAlignment="Stretch">
-        <Grid.RowDefinitions>
-            <RowDefinition/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+          VerticalAlignment="Stretch" RowDefinitions="*,Auto">
         <Border
             CornerRadius="5"
             BorderBrush="{DynamicResource AppListHoverBackgroundColor}"
@@ -41,11 +37,7 @@
                                 VerticalAlignment="Stretch"
                                 ClipToBounds="True"
                                 CornerRadius="5">
-                                <Grid Margin="0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
+                                <Grid Margin="0" ColumnDefinitions="*,Auto">
                                     <TextBlock
                                         HorizontalAlignment="Stretch"
                                         Text="{Binding UserId}"
@@ -55,7 +47,7 @@
                                             HorizontalAlignment="Right"
                                             Click="Recover"
                                             CommandParameter="{Binding}"
-                                            Content="{locale:Locale Recover}"/>
+                                            Content="{ext:Locale Recover}"/>
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -64,7 +56,7 @@
                 <TextBlock
                     IsVisible="{Binding IsEmpty}"
                     TextAlignment="Center"
-                    Text="{locale:Locale UserProfilesRecoverEmptyList}"/>
+                    Text="{ext:Locale UserProfilesRecoverEmptyList}"/>
             </Panel>
         </Border>
         <StackPanel

@@ -1,9 +1,9 @@
 using OpenTK.Graphics.OpenGL;
+using Ryujinx.Ava.Systems.Configuration;
 using Ryujinx.Common.Configuration;
 using Ryujinx.Common.Logging;
 using Ryujinx.Graphics.GAL;
 using Ryujinx.Graphics.OpenGL;
-using Ryujinx.UI.Common.Configuration;
 using SPB.Graphics;
 using SPB.Graphics.Exceptions;
 using SPB.Graphics.OpenGL;
@@ -44,13 +44,13 @@ namespace Ryujinx.Ava.UI.Renderer
                 throw new PlatformNotSupportedException();
             }
 
-            var flags = OpenGLContextFlags.Compat;
+            OpenGLContextFlags flags = OpenGLContextFlags.Compat;
             if (ConfigurationState.Instance.Logger.GraphicsDebugLevel != GraphicsDebugLevel.None)
             {
                 flags |= OpenGLContextFlags.Debug;
             }
 
-            var graphicsMode = Environment.OSVersion.Platform == PlatformID.Unix ? new FramebufferFormat(new ColorFormat(8, 8, 8, 0), 16, 0, ColorFormat.Zero, 0, 2, false) : FramebufferFormat.Default;
+            FramebufferFormat graphicsMode = Environment.OSVersion.Platform == PlatformID.Unix ? new FramebufferFormat(new ColorFormat(8, 8, 8, 0), 16, 0, ColorFormat.Zero, 0, 2, false) : FramebufferFormat.Default;
 
             Context = PlatformHelper.CreateOpenGLContext(graphicsMode, 3, 3, flags);
 

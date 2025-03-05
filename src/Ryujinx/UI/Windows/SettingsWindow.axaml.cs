@@ -1,10 +1,11 @@
 using Avalonia.Controls;
-using FluentAvalonia.Core;
 using FluentAvalonia.UI.Controls;
 using Ryujinx.Ava.Common.Locale;
 using Ryujinx.Ava.UI.ViewModels;
 using Ryujinx.HLE.FileSystem;
+using Ryujinx.Input;
 using System;
+using System.Linq;
 
 namespace Ryujinx.Ava.UI.Windows
 {
@@ -14,7 +15,7 @@ namespace Ryujinx.Ava.UI.Windows
 
         public SettingsWindow(VirtualFileSystem virtualFileSystem, ContentManager contentManager)
         {
-            Title = App.FormatTitle(LocaleKeys.Settings);
+            Title = RyujinxApp.FormatTitle(LocaleKeys.Settings);
 
             DataContext = ViewModel = new SettingsViewModel(virtualFileSystem, contentManager);
 
@@ -37,7 +38,7 @@ namespace Ryujinx.Ava.UI.Windows
         {
             InputPage.InputView?.SaveCurrentProfile();
 
-            if (Owner is MainWindow window && (ViewModel.GameDirectoryChanged || ViewModel.AutoloadDirectoryChanged))
+            if (Owner is MainWindow window && ViewModel.GameListNeedsRefresh)
             {
                 window.LoadApplications();
             }
@@ -80,10 +81,15 @@ namespace Ryujinx.Ava.UI.Windows
                         NavPanel.Content = AudioPage;
                         break;
                     case "NetworkPage":
+                        NetworkPage.ViewModel = ViewModel;
                         NavPanel.Content = NetworkPage;
                         break;
                     case "LoggingPage":
                         NavPanel.Content = LoggingPage;
+                        break;
+                    case nameof(HacksPage):
+                        HacksPage.DataContext = ViewModel;
+                        NavPanel.Content = HacksPage;
                         break;
                     default:
                         throw new NotImplementedException();
@@ -94,6 +100,12 @@ namespace Ryujinx.Ava.UI.Windows
         protected override void OnClosing(WindowClosingEventArgs e)
         {
             HotkeysPage.Dispose();
+            
+            foreach (IGamepad gamepad in RyujinxApp.MainWindow.InputManager.GamepadDriver.GetGamepads())
+            {
+                gamepad?.ClearLed();
+            }
+            
             InputPage.Dispose();
             base.OnClosing(e);
         }

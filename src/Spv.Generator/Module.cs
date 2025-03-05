@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -45,21 +46,21 @@ namespace Spv.Generator
         {
             _version = version;
             _bound = 1;
-            _capabilities = new List<Capability>();
-            _extensions = new List<string>();
+            _capabilities = [];
+            _extensions = [];
             _extInstImports = new Dictionary<DeterministicStringKey, Instruction>();
             _addressingModel = AddressingModel.Logical;
             _memoryModel = MemoryModel.Simple;
-            _entrypoints = new List<Instruction>();
-            _executionModes = new List<Instruction>();
-            _debug = new List<Instruction>();
-            _annotations = new List<Instruction>();
+            _entrypoints = [];
+            _executionModes = [];
+            _debug = [];
+            _annotations = [];
             _typeDeclarations = new Dictionary<TypeDeclarationKey, Instruction>();
-            _typeDeclarationsList = new List<Instruction>();
+            _typeDeclarationsList = [];
             _constants = new Dictionary<ConstantKey, Instruction>();
-            _globals = new List<Instruction>();
-            _functionsDeclarations = new List<Instruction>();
-            _functionsDefinitions = new List<Instruction>();
+            _globals = [];
+            _functionsDeclarations = [];
+            _functionsDefinitions = [];
 
             _instPool = instPool ?? new GeneratorPool<Instruction>();
             _integerPool = integerPool ?? new GeneratorPool<LiteralInteger>();
@@ -84,7 +85,7 @@ namespace Spv.Generator
 
         public Instruction NewInstruction(Op opcode, uint id = Instruction.InvalidId, Instruction resultType = null)
         {
-            var result = _instPool.Allocate();
+            Instruction result = _instPool.Allocate();
             result.Set(opcode, id, resultType);
 
             return result;
@@ -92,7 +93,7 @@ namespace Spv.Generator
 
         public Instruction AddExtInstImport(string import)
         {
-            var key = new DeterministicStringKey(import);
+            DeterministicStringKey key = new(import);
 
             if (_extInstImports.TryGetValue(key, out Instruction extInstImport))
             {
@@ -112,7 +113,7 @@ namespace Spv.Generator
 
         private void AddTypeDeclaration(Instruction instruction, bool forceIdAllocation)
         {
-            var key = new TypeDeclarationKey(instruction);
+            TypeDeclarationKey key = new(instruction);
 
             if (!forceIdAllocation)
             {
@@ -132,7 +133,7 @@ namespace Spv.Generator
             _typeDeclarationsList.Add(instruction);
         }
 
-        public void AddEntryPoint(ExecutionModel executionModel, Instruction function, string name, params Instruction[] interfaces)
+        public void AddEntryPoint(ExecutionModel executionModel, Instruction function, string name, params ReadOnlySpan<Instruction> interfaces)
         {
             Debug.Assert(function.Opcode == Op.OpFunction);
 
@@ -146,7 +147,7 @@ namespace Spv.Generator
             _entrypoints.Add(entryPoint);
         }
 
-        public void AddExecutionMode(Instruction function, ExecutionMode mode, params IOperand[] parameters)
+        public void AddExecutionMode(Instruction function, ExecutionMode mode, params ReadOnlySpan<IOperand> parameters)
         {
             Debug.Assert(function.Opcode == Op.OpFunction);
 
@@ -213,7 +214,7 @@ namespace Spv.Generator
                          constant.Opcode == Op.OpConstantNull ||
                          constant.Opcode == Op.OpConstantComposite);
 
-            var key = new ConstantKey(constant);
+            ConstantKey key = new(constant);
 
             if (_constants.TryGetValue(key, out Instruction global))
             {
@@ -228,7 +229,7 @@ namespace Spv.Generator
             _constants.Add(key, constant);
         }
 
-        public Instruction ExtInst(Instruction resultType, Instruction set, LiteralInteger instruction, params IOperand[] parameters)
+        public Instruction ExtInst(Instruction resultType, Instruction set, LiteralInteger instruction, params ReadOnlySpan<IOperand> parameters)
         {
             Instruction result = NewInstruction(Op.OpExtInst, GetNewId(), resultType);
 
@@ -247,7 +248,7 @@ namespace Spv.Generator
         }
 
         // TODO: Find a way to make the auto generate one used.
-        public Instruction OpenClPrintf(Instruction resultType, Instruction format, params Instruction[] additionalarguments)
+        public Instruction OpenClPrintf(Instruction resultType, Instruction format, params ReadOnlySpan<Instruction> additionalarguments)
         {
             Instruction result = NewInstruction(Op.OpExtInst, GetNewId(), resultType);
 
@@ -332,7 +333,7 @@ namespace Spv.Generator
             }
 
             // Ensure that everything is in the right order in the declarations section.
-            List<Instruction> declarations = new();
+            List<Instruction> declarations = [];
             declarations.AddRange(_typeDeclarationsList);
             declarations.AddRange(_globals);
             declarations.AddRange(_constants.Values);

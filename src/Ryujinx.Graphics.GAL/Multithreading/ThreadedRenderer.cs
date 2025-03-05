@@ -55,8 +55,10 @@ namespace Ryujinx.Graphics.GAL.Multithreading
         private int _refProducerPtr;
         private int _refConsumerPtr;
 
+        public uint ProgramCount { get; set; } = 0;
+
         private Action _interruptAction;
-        private readonly object _interruptLock = new();
+        private readonly Lock _interruptLock = new();
 
         public event EventHandler<ScreenCaptureImageInfo> ScreenCaptured;
 
@@ -292,7 +294,7 @@ namespace Ryujinx.Graphics.GAL.Multithreading
 
         public IImageArray CreateImageArray(int size, bool isBuffer)
         {
-            var imageArray = new ThreadedImageArray(this);
+            ThreadedImageArray imageArray = new(this);
             New<CreateImageArrayCommand>().Set(Ref(imageArray), size, isBuffer);
             QueueCommand();
 
@@ -301,11 +303,13 @@ namespace Ryujinx.Graphics.GAL.Multithreading
 
         public IProgram CreateProgram(ShaderSource[] shaders, ShaderInfo info)
         {
-            var program = new ThreadedProgram(this);
+            ThreadedProgram program = new(this);
 
             SourceProgramRequest request = new(program, shaders, info);
 
             Programs.Add(request);
+
+            ProgramCount++;
 
             New<CreateProgramCommand>().Set(Ref((IProgramRequest)request));
             QueueCommand();
@@ -315,7 +319,7 @@ namespace Ryujinx.Graphics.GAL.Multithreading
 
         public ISampler CreateSampler(SamplerCreateInfo info)
         {
-            var sampler = new ThreadedSampler(this);
+            ThreadedSampler sampler = new(this);
             New<CreateSamplerCommand>().Set(Ref(sampler), info);
             QueueCommand();
 
@@ -333,7 +337,7 @@ namespace Ryujinx.Graphics.GAL.Multithreading
         {
             if (IsGpuThread())
             {
-                var texture = new ThreadedTexture(this, info);
+                ThreadedTexture texture = new(this, info);
                 New<CreateTextureCommand>().Set(Ref(texture), info);
                 QueueCommand();
 
@@ -341,7 +345,7 @@ namespace Ryujinx.Graphics.GAL.Multithreading
             }
             else
             {
-                var texture = new ThreadedTexture(this, info)
+                ThreadedTexture texture = new(this, info)
                 {
                     Base = _baseRenderer.CreateTexture(info),
                 };
@@ -351,7 +355,7 @@ namespace Ryujinx.Graphics.GAL.Multithreading
         }
         public ITextureArray CreateTextureArray(int size, bool isBuffer)
         {
-            var textureArray = new ThreadedTextureArray(this);
+            ThreadedTextureArray textureArray = new(this);
             New<CreateTextureArrayCommand>().Set(Ref(textureArray), size, isBuffer);
             QueueCommand();
 
@@ -410,7 +414,7 @@ namespace Ryujinx.Graphics.GAL.Multithreading
 
         public IProgram LoadProgramBinary(byte[] programBinary, bool hasFragmentShader, ShaderInfo info)
         {
-            var program = new ThreadedProgram(this);
+            ThreadedProgram program = new(this);
 
             BinaryProgramRequest request = new(program, programBinary, hasFragmentShader, info);
             Programs.Add(request);

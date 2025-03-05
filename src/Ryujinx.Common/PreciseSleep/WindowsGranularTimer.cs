@@ -50,8 +50,8 @@ namespace Ryujinx.Common.SystemInterop
         private long _lastTicks = PerformanceCounter.ElapsedTicks;
         private long _lastId;
 
-        private readonly object _lock = new();
-        private readonly List<WaitingObject> _waitingObjects = new();
+        private readonly Lock _lock = new();
+        private readonly List<WaitingObject> _waitingObjects = [];
 
         private WindowsGranularTimer()
         {

@@ -1,9 +1,11 @@
 using Ryujinx.Common.Configuration.Hid;
 using Ryujinx.Common.Configuration.Hid.Keyboard;
+using Ryujinx.Common.Logging;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using static SDL2.SDL;
 
 using ConfigKey = Ryujinx.Common.Configuration.Hid.Key;
@@ -17,7 +19,7 @@ namespace Ryujinx.Input.SDL2
             public bool IsValid => To is not GamepadButtonInputId.Unbound && From is not Key.Unbound;
         }
 
-        private readonly object _userMappingLock = new();
+        private readonly Lock _userMappingLock = new();
 
 #pragma warning disable IDE0052 // Remove unread private member
         private readonly SDL2KeyboardDriver _driver;
@@ -25,8 +27,8 @@ namespace Ryujinx.Input.SDL2
         private StandardKeyboardInputConfig _configuration;
         private readonly List<ButtonMappingEntry> _buttonsUserMapping;
 
-        private static readonly SDL_Keycode[] _keysDriverMapping = new SDL_Keycode[(int)Key.Count]
-        {
+        private static readonly SDL_Keycode[] _keysDriverMapping =
+        [
             // INVALID
             SDL_Keycode.SDLK_0,
             // Presented as modifiers, so invalid here.
@@ -164,15 +166,15 @@ namespace Ryujinx.Input.SDL2
             SDL_Keycode.SDLK_BACKSLASH,
 
             // Invalids
-            SDL_Keycode.SDLK_0,
-        };
+            SDL_Keycode.SDLK_0
+        ];
 
         public SDL2Keyboard(SDL2KeyboardDriver driver, string id, string name)
         {
             _driver = driver;
             Id = id;
             Name = name;
-            _buttonsUserMapping = new List<ButtonMappingEntry>();
+            _buttonsUserMapping = [];
         }
 
         private bool HasConfiguration => _configuration != null;
@@ -225,7 +227,7 @@ namespace Ryujinx.Input.SDL2
 
             unsafe
             {
-                IntPtr statePtr = SDL_GetKeyboardState(out int numKeys);
+                nint statePtr = SDL_GetKeyboardState(out int numKeys);
 
                 rawKeyboardState = new ReadOnlySpan<byte>((byte*)statePtr, numKeys);
             }
@@ -382,6 +384,11 @@ namespace Ryujinx.Input.SDL2
                 _buttonsUserMapping.Add(new ButtonMappingEntry(GamepadButtonInputId.SingleRightTrigger1, (Key)_configuration.RightJoycon.ButtonSr));
                 _buttonsUserMapping.Add(new ButtonMappingEntry(GamepadButtonInputId.SingleLeftTrigger1, (Key)_configuration.RightJoycon.ButtonSl));
             }
+        }
+
+        public void SetLed(uint packedRgb)
+        {
+            Logger.Info?.Print(LogClass.UI, "SetLed called on an SDL2Keyboard");
         }
 
         public void SetTriggerThreshold(float triggerThreshold)

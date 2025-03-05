@@ -1,5 +1,5 @@
 using Avalonia.Interactivity;
-using Ryujinx.UI.App.Common;
+using Ryujinx.Ava.Systems.AppLibrary;
 
 namespace Ryujinx.Ava.UI.Helpers
 {

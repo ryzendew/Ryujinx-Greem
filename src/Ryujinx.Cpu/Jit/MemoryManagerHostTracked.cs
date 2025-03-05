@@ -8,7 +8,6 @@ using Ryujinx.Memory.Tracking;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace Ryujinx.Cpu.Jit
@@ -37,7 +36,7 @@ namespace Ryujinx.Cpu.Jit
         /// <inheritdoc/>
         public bool UsesPrivateAllocations => true;
 
-        public IntPtr PageTablePointer => _nativePageTable.PageTablePointer;
+        public nint PageTablePointer => _nativePageTable.PageTablePointer;
 
         public MemoryManagerType Type => _unsafeMode ? MemoryManagerType.HostTrackedUnsafe : MemoryManagerType.HostTracked;
 
@@ -240,7 +239,7 @@ namespace Ryujinx.Cpu.Jit
 
             if (TryGetVirtualContiguous(va, data.Length, out MemoryBlock memoryBlock, out ulong offset))
             {
-                var target = memoryBlock.GetSpan(offset, data.Length);
+                Span<byte> target = memoryBlock.GetSpan(offset, data.Length);
 
                 bool changed = !data.SequenceEqual(target);
 
@@ -443,7 +442,7 @@ namespace Ryujinx.Cpu.Jit
                 return null;
             }
 
-            var regions = new List<HostMemoryRange>();
+            List<HostMemoryRange> regions = [];
             ulong endVa = va + size;
 
             try
@@ -452,7 +451,7 @@ namespace Ryujinx.Cpu.Jit
                 {
                     (MemoryBlock memory, ulong rangeOffset, ulong rangeSize) = GetMemoryOffsetAndSize(va, endVa - va);
 
-                    regions.Add(new((UIntPtr)memory.GetPointer(rangeOffset, rangeSize), rangeSize));
+                    regions.Add(new((nuint)memory.GetPointer(rangeOffset, rangeSize), rangeSize));
 
                     va += rangeSize;
                 }
@@ -469,22 +468,20 @@ namespace Ryujinx.Cpu.Jit
         {
             if (size == 0)
             {
-                return Enumerable.Empty<MemoryRange>();
+                return [];
             }
 
             return GetPhysicalRegionsImpl(va, size);
         }
 
-        private List<MemoryRange> GetPhysicalRegionsImpl(ulong va, ulong size)
+        private IEnumerable<MemoryRange> GetPhysicalRegionsImpl(ulong va, ulong size)
         {
             if (!ValidateAddress(va) || !ValidateAddressAndSize(va, size))
             {
-                return null;
+                yield break;
             }
 
             int pages = GetPagesCount(va, (uint)size, out va);
-
-            var regions = new List<MemoryRange>();
 
             ulong regionStart = GetPhysicalAddressInternal(va);
             ulong regionSize = PageSize;
@@ -493,14 +490,14 @@ namespace Ryujinx.Cpu.Jit
             {
                 if (!ValidateAddress(va + PageSize))
                 {
-                    return null;
+                    yield break;
                 }
 
                 ulong newPa = GetPhysicalAddressInternal(va + PageSize);
 
                 if (GetPhysicalAddressInternal(va) + PageSize != newPa)
                 {
-                    regions.Add(new MemoryRange(regionStart, regionSize));
+                    yield return new MemoryRange(regionStart, regionSize);
                     regionStart = newPa;
                     regionSize = 0;
                 }
@@ -509,9 +506,7 @@ namespace Ryujinx.Cpu.Jit
                 regionSize += PageSize;
             }
 
-            regions.Add(new MemoryRange(regionStart, regionSize));
-
-            return regions;
+            yield return new MemoryRange(regionStart, regionSize);
         }
 
         /// <inheritdoc/>

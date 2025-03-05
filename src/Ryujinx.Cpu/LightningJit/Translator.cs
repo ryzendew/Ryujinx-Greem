@@ -5,7 +5,6 @@ using Ryujinx.Cpu.LightningJit.Cache;
 using Ryujinx.Cpu.LightningJit.CodeGen.Arm64;
 using Ryujinx.Cpu.LightningJit.State;
 using Ryujinx.Cpu.Signal;
-using Ryujinx.Memory;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -19,25 +18,6 @@ namespace Ryujinx.Cpu.LightningJit
         // Should be enabled on platforms that enforce W^X.
         private static bool IsNoWxPlatform => false;
 
-        private static readonly AddressTable<ulong>.Level[] _levels64Bit =
-            new AddressTable<ulong>.Level[]
-            {
-                new(31, 17),
-                new(23,  8),
-                new(15,  8),
-                new( 7,  8),
-                new( 2,  5),
-            };
-
-        private static readonly AddressTable<ulong>.Level[] _levels32Bit =
-            new AddressTable<ulong>.Level[]
-            {
-                new(23, 9),
-                new(15, 8),
-                new( 7, 8),
-                new( 1, 6),
-            };
-
         private readonly ConcurrentQueue<KeyValuePair<ulong, TranslatedFunction>> _oldFuncs;
         private readonly NoWxCache _noWxCache;
         private bool _disposed;
@@ -47,7 +27,7 @@ namespace Ryujinx.Cpu.LightningJit
         internal TranslatorStubs Stubs { get; }
         internal IMemoryManager Memory { get; }
 
-        public Translator(IMemoryManager memory, bool for64Bits)
+        public Translator(IMemoryManager memory, AddressTable<ulong> functionTable)
         {
             Memory = memory;
 
@@ -63,7 +43,7 @@ namespace Ryujinx.Cpu.LightningJit
             }
 
             Functions = new TranslatorCache<TranslatedFunction>();
-            FunctionTable = new AddressTable<ulong>(for64Bits ? _levels64Bit : _levels32Bit);
+            FunctionTable = functionTable;
             Stubs = new TranslatorStubs(FunctionTable, _noWxCache);
 
             FunctionTable.Fill = (ulong)Stubs.SlowDispatchStub;
@@ -98,7 +78,7 @@ namespace Ryujinx.Cpu.LightningJit
             _noWxCache?.ClearEntireThreadLocalCache();
         }
 
-        internal IntPtr GetOrTranslatePointer(IntPtr framePointer, ulong address, ExecutionMode mode)
+        internal nint GetOrTranslatePointer(nint framePointer, ulong address, ExecutionMode mode)
         {
             if (_noWxCache != null)
             {
@@ -141,7 +121,7 @@ namespace Ryujinx.Cpu.LightningJit
         private TranslatedFunction Translate(ulong address, ExecutionMode mode)
         {
             CompiledFunction func = Compile(address, mode);
-            IntPtr funcPointer = JitCache.Map(func.Code);
+            nint funcPointer = JitCache.Map(func.Code);
 
             return new TranslatedFunction(funcPointer, (ulong)func.GuestCodeLength);
         }
@@ -153,7 +133,7 @@ namespace Ryujinx.Cpu.LightningJit
 
         public void InvalidateJitCacheRegion(ulong address, ulong size)
         {
-            ulong[] overlapAddresses = Array.Empty<ulong>();
+            ulong[] overlapAddresses = [];
 
             int overlapsCount = Functions.GetOverlaps(address, size, ref overlapAddresses);
 
@@ -182,14 +162,14 @@ namespace Ryujinx.Cpu.LightningJit
         {
             List<TranslatedFunction> functions = Functions.AsList();
 
-            foreach (var func in functions)
+            foreach (TranslatedFunction func in functions)
             {
                 JitCache.Unmap(func.FuncPointer);
             }
 
             Functions.Clear();
 
-            while (_oldFuncs.TryDequeue(out var kv))
+            while (_oldFuncs.TryDequeue(out KeyValuePair<ulong, TranslatedFunction> kv))
             {
                 JitCache.Unmap(kv.Value.FuncPointer);
             }

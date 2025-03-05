@@ -5,6 +5,7 @@ using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.EXT;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Ryujinx.Graphics.Vulkan
 {
@@ -13,13 +14,13 @@ namespace Ryujinx.Graphics.Vulkan
         private readonly struct HostMemoryAllocation
         {
             public readonly Auto<MemoryAllocation> Allocation;
-            public readonly IntPtr Pointer;
+            public readonly nint Pointer;
             public readonly ulong Size;
 
             public ulong Start => (ulong)Pointer;
             public ulong End => (ulong)Pointer + Size;
 
-            public HostMemoryAllocation(Auto<MemoryAllocation> allocation, IntPtr pointer, ulong size)
+            public HostMemoryAllocation(Auto<MemoryAllocation> allocation, nint pointer, ulong size)
             {
                 Allocation = allocation;
                 Pointer = pointer;
@@ -31,7 +32,7 @@ namespace Ryujinx.Graphics.Vulkan
         private readonly Vk _api;
         private readonly ExtExternalMemoryHost _hostMemoryApi;
         private readonly Device _device;
-        private readonly object _lock = new();
+        private readonly Lock _lock = new();
 
         private readonly List<HostMemoryAllocation> _allocations;
         private readonly IntervalTree<ulong, HostMemoryAllocation> _allocationTree;
@@ -43,20 +44,20 @@ namespace Ryujinx.Graphics.Vulkan
             _hostMemoryApi = hostMemoryApi;
             _device = device;
 
-            _allocations = new List<HostMemoryAllocation>();
+            _allocations = [];
             _allocationTree = new IntervalTree<ulong, HostMemoryAllocation>();
         }
 
         public unsafe bool TryImport(
             MemoryRequirements requirements,
             MemoryPropertyFlags flags,
-            IntPtr pointer,
+            nint pointer,
             ulong size)
         {
             lock (_lock)
             {
                 // Does a compatible allocation exist in the tree?
-                var allocations = new HostMemoryAllocation[10];
+                HostMemoryAllocation[] allocations = new HostMemoryAllocation[10];
 
                 ulong start = (ulong)pointer;
                 ulong end = start + size;
@@ -107,7 +108,7 @@ namespace Ryujinx.Graphics.Vulkan
                     PHostPointer = (void*)pageAlignedPointer,
                 };
 
-                var memoryAllocateInfo = new MemoryAllocateInfo
+                MemoryAllocateInfo memoryAllocateInfo = new()
                 {
                     SType = StructureType.MemoryAllocateInfo,
                     AllocationSize = pageAlignedSize,
@@ -115,7 +116,7 @@ namespace Ryujinx.Graphics.Vulkan
                     PNext = &importInfo,
                 };
 
-                Result result = _api.AllocateMemory(_device, in memoryAllocateInfo, null, out var deviceMemory);
+                Result result = _api.AllocateMemory(_device, in memoryAllocateInfo, null, out DeviceMemory deviceMemory);
 
                 if (result < Result.Success)
                 {
@@ -123,9 +124,9 @@ namespace Ryujinx.Graphics.Vulkan
                     return false;
                 }
 
-                var allocation = new MemoryAllocation(this, deviceMemory, pageAlignedPointer, 0, pageAlignedSize);
-                var allocAuto = new Auto<MemoryAllocation>(allocation);
-                var hostAlloc = new HostMemoryAllocation(allocAuto, pageAlignedPointer, pageAlignedSize);
+                MemoryAllocation allocation = new(this, deviceMemory, pageAlignedPointer, 0, pageAlignedSize);
+                Auto<MemoryAllocation> allocAuto = new(allocation);
+                HostMemoryAllocation hostAlloc = new(allocAuto, pageAlignedPointer, pageAlignedSize);
 
                 allocAuto.IncrementReferenceCount();
                 allocAuto.Dispose(); // Kept alive by ref count only.
@@ -139,12 +140,12 @@ namespace Ryujinx.Graphics.Vulkan
             return true;
         }
 
-        public (Auto<MemoryAllocation>, ulong) GetExistingAllocation(IntPtr pointer, ulong size)
+        public (Auto<MemoryAllocation>, ulong) GetExistingAllocation(nint pointer, ulong size)
         {
             lock (_lock)
             {
                 // Does a compatible allocation exist in the tree?
-                var allocations = new HostMemoryAllocation[10];
+                HostMemoryAllocation[] allocations = new HostMemoryAllocation[10];
 
                 ulong start = (ulong)pointer;
                 ulong end = start + size;

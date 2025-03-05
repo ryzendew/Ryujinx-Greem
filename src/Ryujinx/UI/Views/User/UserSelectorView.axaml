@@ -2,7 +2,7 @@
     x:Class="Ryujinx.Ava.UI.Views.User.UserSelectorViews"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:locale="clr-namespace:Ryujinx.Ava.Common.Locale"
+    xmlns:ext="clr-namespace:Ryujinx.Ava.Common.Markup"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:helpers="clr-namespace:Ryujinx.Ava.UI.Helpers"
@@ -15,17 +15,10 @@
     mc:Ignorable="d"
     Focusable="True"
     x:DataType="viewModels:UserProfileViewModel">
-    <UserControl.Resources>
-        <helpers:BitmapArrayValueConverter x:Key="ByteImage" />
-    </UserControl.Resources>
     <Design.DataContext>
         <viewModels:UserProfileViewModel />
     </Design.DataContext>
-    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-        <Grid.RowDefinitions>
-            <RowDefinition />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" RowDefinitions="*,Auto">
         <Border
             CornerRadius="5"
             BorderBrush="{DynamicResource AppListHoverBackgroundColor}"
@@ -74,7 +67,7 @@
                                         Height="96"
                                         HorizontalAlignment="Stretch"
                                         VerticalAlignment="Top"
-                                        Source="{Binding Image, Converter={StaticResource ByteImage}}" />
+                                        Source="{Binding Image, Converter={x:Static helpers:BitmapArrayValueConverter.Instance}}" />
                                     <TextBlock
                                         HorizontalAlignment="Stretch"
                                         MaxWidth="90"
@@ -144,10 +137,10 @@
             Spacing="10">
             <Button
                 Click="ManageSaves"
-                Content="{locale:Locale UserProfilesManageSaves}" />
+                Content="{ext:Locale UserProfilesManageSaves}" />
             <Button
                 Click="RecoverLostAccounts"
-                Content="{locale:Locale UserProfilesRecoverLostAccounts}" />
+                Content="{ext:Locale UserProfilesRecoverLostAccounts}" />
         </StackPanel>
         <StackPanel
             Grid.Row="1"
@@ -156,7 +149,7 @@
             Orientation="Horizontal">
             <Button
                 Click="Close"
-                Content="{locale:Locale UserProfilesClose}" />
+                Content="{ext:Locale UserProfilesClose}" />
         </StackPanel>
     </Grid>
 </UserControl>

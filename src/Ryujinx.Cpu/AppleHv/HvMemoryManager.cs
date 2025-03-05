@@ -5,7 +5,6 @@ using Ryujinx.Memory.Tracking;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 
@@ -32,7 +31,7 @@ namespace Ryujinx.Cpu.AppleHv
 
         public int AddressSpaceBits { get; }
 
-        public IntPtr PageTablePointer => IntPtr.Zero;
+        public nint PageTablePointer => nint.Zero;
 
         public MemoryManagerType Type => MemoryManagerType.SoftwarePageTable;
 
@@ -230,25 +229,20 @@ namespace Ryujinx.Cpu.AppleHv
         {
             if (size == 0)
             {
-                return Enumerable.Empty<HostMemoryRange>();
+                yield break;
             }
 
-            var guestRegions = GetPhysicalRegionsImpl(va, size);
+            IEnumerable<MemoryRange> guestRegions = GetPhysicalRegionsImpl(va, size);
             if (guestRegions == null)
             {
-                return null;
+                yield break;
             }
 
-            var regions = new HostMemoryRange[guestRegions.Count];
-
-            for (int i = 0; i < regions.Length; i++)
+            foreach (MemoryRange guestRegion in guestRegions)
             {
-                var guestRegion = guestRegions[i];
-                IntPtr pointer = _backingMemory.GetPointer(guestRegion.Address, guestRegion.Size);
-                regions[i] = new HostMemoryRange((nuint)(ulong)pointer, guestRegion.Size);
+                nint pointer = _backingMemory.GetPointer(guestRegion.Address, guestRegion.Size);
+                yield return new HostMemoryRange((nuint)(ulong)pointer, guestRegion.Size);
             }
-
-            return regions;
         }
 
         /// <inheritdoc/>
@@ -256,22 +250,23 @@ namespace Ryujinx.Cpu.AppleHv
         {
             if (size == 0)
             {
-                return Enumerable.Empty<MemoryRange>();
+                yield break;
             }
 
-            return GetPhysicalRegionsImpl(va, size);
+            foreach (MemoryRange physicalRegion in GetPhysicalRegionsImpl(va, size))
+            {
+                yield return physicalRegion;
+            }
         }
 
-        private List<MemoryRange> GetPhysicalRegionsImpl(ulong va, ulong size)
+        private IEnumerable<MemoryRange> GetPhysicalRegionsImpl(ulong va, ulong size)
         {
             if (!ValidateAddress(va) || !ValidateAddressAndSize(va, size))
             {
-                return null;
+                yield break;
             }
 
             int pages = GetPagesCount(va, (uint)size, out va);
-
-            var regions = new List<MemoryRange>();
 
             ulong regionStart = GetPhysicalAddressInternal(va);
             ulong regionSize = PageSize;
@@ -280,14 +275,14 @@ namespace Ryujinx.Cpu.AppleHv
             {
                 if (!ValidateAddress(va + PageSize))
                 {
-                    return null;
+                    yield break;
                 }
 
                 ulong newPa = GetPhysicalAddressInternal(va + PageSize);
 
                 if (GetPhysicalAddressInternal(va) + PageSize != newPa)
                 {
-                    regions.Add(new MemoryRange(regionStart, regionSize));
+                    yield return new MemoryRange(regionStart, regionSize);
                     regionStart = newPa;
                     regionSize = 0;
                 }
@@ -296,9 +291,7 @@ namespace Ryujinx.Cpu.AppleHv
                 regionSize += PageSize;
             }
 
-            regions.Add(new MemoryRange(regionStart, regionSize));
-
-            return regions;
+            yield return new MemoryRange(regionStart, regionSize);
         }
 
         /// <remarks>

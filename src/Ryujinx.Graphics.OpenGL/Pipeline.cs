@@ -23,7 +23,7 @@ namespace Ryujinx.Graphics.OpenGL
         private VertexArray _vertexArray;
         private Framebuffer _framebuffer;
 
-        private IntPtr _indexBaseOffset;
+        private nint _indexBaseOffset;
 
         private DrawElementsType _elementsType;
 
@@ -35,8 +35,8 @@ namespace Ryujinx.Graphics.OpenGL
         private bool _stencilTestEnable;
         private bool _cullEnable;
 
-        private float[] _viewportArray = Array.Empty<float>();
-        private double[] _depthRangeArray = Array.Empty<double>();
+        private float[] _viewportArray = [];
+        private double[] _depthRangeArray = [];
 
         private int _boundDrawFramebuffer;
         private int _boundReadFramebuffer;
@@ -111,7 +111,7 @@ namespace Ryujinx.Graphics.OpenGL
                 (componentMask & 4) != 0,
                 (componentMask & 8) != 0);
 
-            float[] colors = new float[] { color.Red, color.Green, color.Blue, color.Alpha };
+            float[] colors = [color.Red, color.Green, color.Blue, color.Alpha];
 
             if (layer != 0 || layerCount != _framebuffer.GetColorLayerCount(index))
             {
@@ -358,7 +358,7 @@ namespace Ryujinx.Graphics.OpenGL
                     break;
             }
 
-            IntPtr indexBaseOffset = _indexBaseOffset + firstIndex * indexElemSize;
+            nint indexBaseOffset = _indexBaseOffset + firstIndex * indexElemSize;
 
             if (_primitiveType == PrimitiveType.Quads && !HwCapabilities.SupportsQuads)
             {
@@ -396,7 +396,7 @@ namespace Ryujinx.Graphics.OpenGL
         private void DrawQuadsIndexedImpl(
             int indexCount,
             int instanceCount,
-            IntPtr indexBaseOffset,
+            nint indexBaseOffset,
             int indexElemSize,
             int firstVertex,
             int firstInstance)
@@ -447,7 +447,7 @@ namespace Ryujinx.Graphics.OpenGL
             }
             else
             {
-                IntPtr[] indices = new IntPtr[quadsCount];
+                nint[] indices = new nint[quadsCount];
 
                 int[] counts = new int[quadsCount];
 
@@ -475,7 +475,7 @@ namespace Ryujinx.Graphics.OpenGL
         private void DrawQuadStripIndexedImpl(
             int indexCount,
             int instanceCount,
-            IntPtr indexBaseOffset,
+            nint indexBaseOffset,
             int indexElemSize,
             int firstVertex,
             int firstInstance)
@@ -483,7 +483,7 @@ namespace Ryujinx.Graphics.OpenGL
             // TODO: Instanced rendering.
             int quadsCount = (indexCount - 2) / 2;
 
-            IntPtr[] indices = new IntPtr[quadsCount];
+            nint[] indices = new nint[quadsCount];
 
             int[] counts = new int[quadsCount];
 
@@ -516,7 +516,7 @@ namespace Ryujinx.Graphics.OpenGL
         private void DrawIndexedImpl(
             int indexCount,
             int instanceCount,
-            IntPtr indexBaseOffset,
+            nint indexBaseOffset,
             int firstVertex,
             int firstInstance)
         {
@@ -589,7 +589,7 @@ namespace Ryujinx.Graphics.OpenGL
 
             GL.BindBuffer((BufferTarget)All.DrawIndirectBuffer, indirectBuffer.Handle.ToInt32());
 
-            GL.DrawElementsIndirect(_primitiveType, _elementsType, (IntPtr)indirectBuffer.Offset);
+            GL.DrawElementsIndirect(_primitiveType, _elementsType, (nint)indirectBuffer.Offset);
 
             _vertexArray.RestoreIndexBuffer();
 
@@ -614,8 +614,8 @@ namespace Ryujinx.Graphics.OpenGL
             GL.MultiDrawElementsIndirectCount(
                 _primitiveType,
                 (All)_elementsType,
-                (IntPtr)indirectBuffer.Offset,
-                (IntPtr)parameterBuffer.Offset,
+                (nint)indirectBuffer.Offset,
+                (nint)parameterBuffer.Offset,
                 maxDrawCount,
                 stride);
 
@@ -636,7 +636,7 @@ namespace Ryujinx.Graphics.OpenGL
 
             GL.BindBuffer((BufferTarget)All.DrawIndirectBuffer, indirectBuffer.Handle.ToInt32());
 
-            GL.DrawArraysIndirect(_primitiveType, (IntPtr)indirectBuffer.Offset);
+            GL.DrawArraysIndirect(_primitiveType, (nint)indirectBuffer.Offset);
 
             PostDraw();
         }
@@ -656,8 +656,8 @@ namespace Ryujinx.Graphics.OpenGL
 
             GL.MultiDrawArraysIndirectCount(
                 _primitiveType,
-                (IntPtr)indirectBuffer.Offset,
-                (IntPtr)parameterBuffer.Offset,
+                (nint)indirectBuffer.Offset,
+                (nint)parameterBuffer.Offset,
                 maxDrawCount,
                 stride);
 
@@ -972,7 +972,7 @@ namespace Ryujinx.Graphics.OpenGL
         {
             _elementsType = type.Convert();
 
-            _indexBaseOffset = (IntPtr)buffer.Offset;
+            _indexBaseOffset = (nint)buffer.Offset;
 
             EnsureVertexArray();
 
@@ -1205,7 +1205,7 @@ namespace Ryujinx.Graphics.OpenGL
             {
                 int vIndex = index * 4;
 
-                var region = regions[index];
+                Rectangle<int> region = regions[index];
 
                 bool enabled = (region.X | region.Y) != 0 || region.Width != 0xffff || region.Height != 0xffff;
                 uint mask = 1u << index;
@@ -1450,11 +1450,11 @@ namespace Ryujinx.Graphics.OpenGL
 
                 if (buffer.Handle == BufferHandle.Null)
                 {
-                    GL.BindBufferRange(target, assignment.Binding, 0, IntPtr.Zero, 0);
+                    GL.BindBufferRange(target, assignment.Binding, 0, nint.Zero, 0);
                     continue;
                 }
 
-                GL.BindBufferRange(target, assignment.Binding, buffer.Handle.ToInt32(), (IntPtr)buffer.Offset, buffer.Size);
+                GL.BindBufferRange(target, assignment.Binding, buffer.Handle.ToInt32(), (nint)buffer.Offset, buffer.Size);
             }
         }
 

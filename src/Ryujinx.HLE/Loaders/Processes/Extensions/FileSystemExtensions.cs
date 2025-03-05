@@ -6,6 +6,7 @@ using LibHac.Ns;
 using LibHac.Tools.FsSystem;
 using Ryujinx.Common.Configuration;
 using Ryujinx.Common.Logging;
+using Ryujinx.Graphics.Gpu;
 using Ryujinx.HLE.Loaders.Executables;
 using Ryujinx.Memory;
 using System;
@@ -60,7 +61,7 @@ namespace Ryujinx.HLE.Loaders.Processes.Extensions
 
                 Logger.Info?.Print(LogClass.Loader, $"Loading {name}...");
 
-                using var nsoFile = new UniqueRef<IFile>();
+                using UniqueRef<IFile> nsoFile = new();
 
                 exeFs.OpenFile(ref nsoFile.Ref, $"/{name}".ToU8Span(), OpenMode.Read).ThrowIfFailure();
 
@@ -82,14 +83,7 @@ namespace Ryujinx.HLE.Loaders.Processes.Extensions
             // Apply Nsos patches.
             device.Configuration.VirtualFileSystem.ModLoader.ApplyNsoPatches(programId, nsoExecutables);
 
-            // Don't use PTC if ExeFS files have been replaced.
-            bool enablePtc = device.System.EnablePtc && !modLoadResult.Modified;
-            if (!enablePtc)
-            {
-                Logger.Warning?.Print(LogClass.Ptc, "Detected unsupported ExeFs modifications. PTC disabled.");
-            }
-
-            string programName = "";
+            string programName = string.Empty;
 
             if (!isHomebrew && programId > 0x010000000000FFFF)
             {
@@ -102,7 +96,7 @@ namespace Ryujinx.HLE.Loaders.Processes.Extensions
             }
 
             // Initialize GPU.
-            Graphics.Gpu.GraphicsConfig.TitleId = $"{programId:x16}";
+            GraphicsConfig.TitleId = programId.ToString("X16");
             device.Gpu.HostInitalized.Set();
 
             if (!MemoryBlock.SupportsFlags(MemoryAllocationFlags.ViewCompatible))
@@ -115,7 +109,8 @@ namespace Ryujinx.HLE.Loaders.Processes.Extensions
                 device.System.KernelContext,
                 metaLoader,
                 nacpData,
-                enablePtc,
+                device.System.EnablePtc,
+                modLoadResult.Hash,
                 true,
                 programName,
                 metaLoader.GetProgramId(),

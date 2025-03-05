@@ -15,13 +15,13 @@ namespace Ryujinx.Cpu.Jit.HostTracked
         private readonly MemoryBlock _backingMemory;
         private readonly List<AddressSpacePartition> _partitions;
         private readonly AddressSpacePartitionAllocator _asAllocator;
-        private readonly Action<ulong, IntPtr, ulong> _updatePtCallback;
+        private readonly Action<ulong, nint, ulong> _updatePtCallback;
         private readonly bool _useProtectionMirrors;
 
         public AddressSpacePartitioned(MemoryTracking tracking, MemoryBlock backingMemory, NativePageTable nativePageTable, bool useProtectionMirrors)
         {
             _backingMemory = backingMemory;
-            _partitions = new();
+            _partitions = [];
             _asAllocator = new(tracking, nativePageTable.Read, _partitions);
             _updatePtCallback = nativePageTable.Update;
             _useProtectionMirrors = useProtectionMirrors;
@@ -212,7 +212,7 @@ namespace Ryujinx.Cpu.Jit.HostTracked
             }
         }
 
-        public IntPtr GetPointer(ulong va, ulong size)
+        public nint GetPointer(ulong va, ulong size)
         {
             AddressSpacePartition partition = FindPartition(va);
 
